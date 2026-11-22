@@ -32,7 +32,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Akzentfarbe BSR-Orange (`--accent` für Schrift, `--accent-strong` für Ringe/Rahmen): „Aktualisieren“, heutiger Tag als Ring, Rahmen um den laufenden Monat | `app/static/app.css` |
 | Design hell/dunkel/automatisch per Knopf in der Kopfzeile, pro Gerät gespeichert (`localStorage` „theme“). Ein kleines Skript im `<head>` setzt `data-theme` vor dem ersten Zeichnen; das dunkle Design gilt nur am Bildschirm (`@media screen`), der Ausdruck bleibt hell | `index.html`, `app.js` (`applyTheme`, `cycleTheme`), `app.css` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
-| Kopfzeile mit App-Icon, Überschrift „Abfuhrkalender **Berlin**“ („Berlin“ in BSR-Orange, nur am Bildschirm) und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
+| Kopfzeile mit App-Icon, Überschrift „Abfuhrkalender **Berlin**“ („Berlin“ in BSR-Orange, nur am Bildschirm) und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend), oben um den Systemrand eingerückt (`viewport-fit=cover`, `env(safe-area-inset-*)`) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
 | Papier: Kundenportal **oder** selbst angegebener Turnus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
@@ -70,6 +70,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Countdown „in 2 Tagen“ statt „2 Tage“, Überschrift mit oranger „Berlin“. Druckansicht unverändert |
 | – | Druck-Fußzeile: Skyline überarbeitet (Funkturm geschwungen, Brandenburger Tor schmaler mit Quadriga, Fernsehturm mit kleinerer Kugel, Endpfeiler an der Oberbaumbrücke). Feiertagsnamen im Druck kleiner (4,6 pt), 25./26.12. heißen „Weihnachten“, Heiligabend und Silvester beschriftet (ohne Feiertagsfarbe, `specialDays`), Safari darf kleine Schrift nicht mehr selbst vergrößern (`text-size-adjust`) |
 | – | Einstellungen neu sortiert (Karten, Kacheln, Schalter, Vorschläge beim Tippen); vergangene Monate als Stapel unter dem laufenden Monat |
+| – | iPad-App: Kopfzeile unter Statusleiste/Fensterknöpfe eingerückt, weil iPadOS dort weichzeichnet und die Schrift unscharf wurde |
 
 ## Offene Punkte
 
@@ -82,13 +83,14 @@ In etwa nach Wichtigkeit:
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - Neues Design, Hell/Dunkel-Umschalter und Monats-Animation nur in Chrome (auch Handybreite) geprüft, nicht in Safari und nicht auf dem echten iPhone. Das Home-Bildschirm-Icon aktualisiert iOS erst, wenn man die App vom Home-Bildschirm entfernt und neu hinzufügt.
+   - Kopfzeile auf dem iPad (App vom Home-Bildschirm, Fenstermodus): Einrückung um den Systemrand nur in Chrome nachgestellt, noch nicht auf dem echten iPad. Falls die Schrift dort weiter unscharf ist, meldet iPadOS den Rand der Fensterknöpfe vermutlich nicht als `safe-area-inset-top` – dann festen Abstand nur für die installierte App (`@media (display-mode: standalone)`) ergänzen.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
    - Feiertagsnamen im Druck: in Chrome geprüft (passen in die Zeile), noch nicht auf dem iPhone – dort ragte „Ostermontag“ aus der Zeile, vermutlich weil Safari kleine Schrift vergrößert hat.
    - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
-   - Push-Hinweise (Verschiebung, Termin geändert, Abruffehler) nur in Tests geprüft, noch nicht live beobachtet. Erste echte Feiertagsverschiebung: Weihnachten/Neujahr 2026/27. Das Fehlerbanner mit „(seit …)“ ist nicht im Browser angesehen.
+   - Push-Hinweise (Verschiebung, Termin geändert, Abruffehler) nur in Tests geprüft, noch nicht live beobachtet. Erste echte Feiertagsverschiebung: Weihnachten/Neujahr 2026/27 – die Verschiebungen auf den 21./22.12.2026 werden im Kalender richtig angezeigt (mit BSR-Seite verglichen). Das Fehlerbanner mit „(seit …)“ ist nicht im Browser angesehen.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
