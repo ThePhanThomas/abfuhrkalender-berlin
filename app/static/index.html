@@ -20,6 +20,12 @@
       try { t = localStorage.getItem("theme"); } catch (e) {}
       var dark = t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
       document.documentElement.dataset.theme = dark ? "dark" : "light";
+      // iPad-App vom Home-Bildschirm: iPadOS legt oben über Uhrzeit und Fensterknöpfe eine
+      // Unschärfe, ohne der Seite dafür einen Rand zu melden. Kopf dort tiefer setzen (app.css).
+      // iPads geben sich als Mac aus, verraten sich aber über den Touchscreen.
+      var ipad = /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+      var app = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+      if (ipad && app) document.documentElement.classList.add("ipad-app");
     })();
   </script>
   <link rel="stylesheet" href="/static/app.css">
