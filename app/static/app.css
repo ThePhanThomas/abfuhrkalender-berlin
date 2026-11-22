@@ -19,8 +19,8 @@
   --day-tint: 40%;  /* Füllung der Abholtage im Kalender */
 
   --c-HM: #5f5e5a;
-  --c-BI: #8a5a2b;
-  --c-WS: #e9a21f;
+  --c-BI: #8b4a1c;   /* Bio: dunkles Braun, klar abgesetzt vom Gelb */
+  --c-WS: #f2c400;   /* Wertstoffe: Zitronengelb statt Orangegelb */
   --c-PP: #378add;
   --c-GL: #1d9e75;
   --c-LT: #639922;
@@ -47,9 +47,10 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
     --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.4);
     --tint: 24%;
-    --day-tint: 48%;
+    --day-tint: 55%;
     --c-HM: #b4b2a9;
-    --c-BI: #c48a52;
+    --c-BI: #b0652e;
+    --c-WS: #ffe14a;
   }
 }
 
@@ -218,8 +219,7 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .month { background: var(--surface); border-radius: 18px; padding: 14px 12px 10px; box-shadow: var(--shadow); }
 .month.cur { outline: 2px solid var(--accent); outline-offset: -2px; }
 .month.done { opacity: 0.62; }
-.month h3 { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 600; margin: 0 4px 8px; }
-.month h3 small { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 1px 8px; border-radius: 999px; }
+.month h3 { font-size: 15px; font-weight: 600; margin: 0 4px 8px; }
 .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; font-size: 12.5px; text-align: center; font-variant-numeric: tabular-nums; }
 @media (max-width: 480px) { .grid { font-size: 14px; } }
 .grid .wd { color: var(--text-3); font-size: 10.5px; font-weight: 600; padding-bottom: 2px; }
@@ -274,10 +274,22 @@ legend { font-weight: 600; margin-bottom: 8px; }
 .results { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .results button { text-align: left; }
 .results button.selected { border-color: var(--accent); background: var(--accent-bg); }
+.cats .sw { flex: none; } /* Farbpunkt nicht zusammenquetschen bei langen Namen */
 .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; align-items: center; margin-top: 8px; }
 .dlg-actions a { color: var(--accent); margin-right: auto; font-size: 14px; }
-#ics-url { flex: 1; font-size: 13px; }
+#ics-url { flex: 1; min-width: 0; font-size: 13px; }
+.row input { min-width: 0; max-width: 100%; }
+/* iOS stellt Datumsfelder sonst breiter dar, als die Spalte erlaubt */
+.row input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 36px; }
+
+@media (max-width: 560px) {
+  dialog { width: calc(100vw - 24px); max-width: none; padding: 16px; }
+  .row label { min-width: 0; flex-basis: 100%; }
+  .row label.short { flex: 1 1 0; }
+  /* Unter 16 px zoomt Safari auf dem iPhone beim Antippen hinein – dann muss man seitlich scrollen */
+  dialog input, dialog select { font-size: 16px; }
+}
 
 /* ---------- Druck: Jahresplaner auf einer A4-Seite quer (Kühlschrank, mit Platz zum Eintragen) ---------- */
 @media print {
@@ -286,7 +298,7 @@ legend { font-weight: 600; margin-bottom: 8px; }
   :root {
     --bg: #fff; --surface: #fff; --text: #1a1a18; --text-2: #55544f; --text-3: #8f8d86;
     --line: #dcd9cf; --we: #f4f2ec; --hol: #efe9dc; --danger: #a32d2d;
-    --c-HM: #5f5e5a; --c-BI: #8a5a2b;
+    --c-HM: #5f5e5a; --c-BI: #8b4a1c; --c-WS: #f2c400;
   }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   /* Keine feste Blattgröße: iOS/Safari ignorieren margin 0 und drucken mit eigenem Rand (iPhone: ca. 17 mm).

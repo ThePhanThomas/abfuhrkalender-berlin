@@ -52,6 +52,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #8 | Drucken auf dem iPhone: Kalender passt wieder auf eine Seite (vorher 2 Seiten im Querformat) |
 | #7 | Erster Einsatz auf der Synology: README-Anleitung mit Deploy-Key, `$$` im Passwort, Hinweise zum Container Manager |
 | – | Neues Design („Variante A“): App-Icon, Hero-Karte mit Countdown, Symbole je Müllart, farbig gefüllte Abholtage, Schatten statt Rahmen. Druckansicht unverändert |
+| – | Bio kräftiger braun, Wertstoffe zitronengelb (waren schwer zu unterscheiden); Einstellungsdialog auf dem Handy: Eingabefelder 16 px, damit Safari nicht hineinzoomt, Felder untereinander |
 
 ## Offene Punkte
 
@@ -103,5 +104,6 @@ In etwa nach Wichtigkeit:
 - **Tests und echte Webcalls:** `refresh.run()` ohne `client=` erzeugt einen echten HTTP-Client. In Tests immer den Mock-Client aus `conftest.py` übergeben.
 - **Antippen auf dem Handy:** Ein Tipp löst erst `focusin`, dann `click` aus. Ob der Kasten schon offen war, wird deshalb bei `pointerdown` gemerkt (`initTooltip`).
 - **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.
+- **Einstellungen auf dem iPhone zu breit:** Eingabefelder hatten 13 px Schrift; Safari zoomt bei unter 16 px beim Antippen hinein, danach musste man seitlich scrollen. In der Simulation am Mac nicht nachstellbar, weil dort nicht gezoomt wird – auf einem echten iPhone prüfen.
 - **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.
