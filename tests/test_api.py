@@ -112,6 +112,12 @@ def test_secrets_never_stored(api, monkeypatch, tmp_data):
         assert "geheim" not in f.read_text(encoding="utf-8")
 
 
+def test_page_and_assets_are_revalidated(api):
+    """Regression: without Cache-Control browsers mixed a new page with old CSS/JS."""
+    for path in ("/", "/static/app.css", "/static/app.js", "/api/state"):
+        assert api.get(path).headers["cache-control"] == "no-cache", path
+
+
 def test_store_defaults_merge(tmp_data):
     (tmp_data / "config.json").write_text('{"categories": ["HM"]}', encoding="utf-8")
     cfg = store.load_config()
