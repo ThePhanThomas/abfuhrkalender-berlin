@@ -13,7 +13,7 @@ import threading
 from copy import deepcopy
 from pathlib import Path
 
-from app.models import DEFAULT_CATEGORIES, Pickup
+from app.models import CATEGORIES, DEFAULT_CATEGORIES, Pickup
 
 DEFAULT_CONFIG: dict = {
     "address": None,  # {"key": "<BSR AddrKey>", "label": "Musterstr. 1, 12345 Berlin (Bezirk)"}
@@ -56,6 +56,8 @@ def load_config() -> dict:
     merged = deepcopy(DEFAULT_CONFIG)
     merged.update({k: v for k, v in cfg.items() if k in merged})
     merged["paper"] = {**DEFAULT_CONFIG["paper"], **(cfg.get("paper") or {})}
+    # Older configs may still list categories that are no longer offered (e.g. Glas).
+    merged["categories"] = [c for c in merged["categories"] if c in CATEGORIES]
     return merged
 
 
