@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Abfuhrkalender</title>
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Abfuhr">
+  <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
@@ -141,6 +148,18 @@
           <label class="short">alle … Wochen<input type="number" id="interval" min="1" max="12" value="4"></label>
         </div>
         <label class="radio"><input type="radio" name="paper" value="off"> Kein Papier anzeigen</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Erinnerung per Push</legend>
+        <label class="radio"><input type="checkbox" id="push-on"> Auf diesem Gerät am Vorabend erinnern</label>
+        <p class="hint" id="push-hint"></p>
+        <p class="error" id="push-error"></p>
+        <div class="row">
+          <label class="short">Uhrzeit<input type="time" id="notify-time" value="18:00" step="300"></label>
+          <button type="button" id="btn-push-test" hidden>Test senden</button>
+        </div>
+        <p class="hint">Die Uhrzeit gilt für alle Geräte und wird mit „Speichern“ übernommen. Ein- und Ausschalten wirkt sofort und nur auf diesem Gerät.</p>
       </fieldset>
 
       <p class="error" id="settings-error"></p>
