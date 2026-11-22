@@ -1,0 +1,89 @@
+# Projektstand und Übergabe
+
+Diese Datei ist für alle – Menschen wie Claude –, die hier in einer neuen Session weiterarbeiten. Sie ergänzt die [CLAUDE.md](../CLAUDE.md) (Regeln und Konventionen) und das [README](../README.md) (Installation und Betrieb) um den **aktuellen Stand**: Was ist fertig, was ist offen, worüber ist man schon gestolpert.
+
+**Bitte aktuell halten:** Wer ein Feature abschließt oder etwas Neues herausfindet, passt diese Datei im selben Pull Request an.
+
+_Stand: 22.11.2026_
+
+---
+
+## Kurz gesagt
+
+Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vier Müllarten kommen automatisch:
+
+| Müllart | Quelle | Status |
+|---|---|---|
+| Hausmüll, Biogut | BSR-API | ✅ funktioniert, inkl. Feiertagsverschiebungen |
+| Wertstoffe (gelbe Tonne) | BSR-API (Abfuhr durch ALBA) | ✅ funktioniert |
+| Papier | Berlin Recycling Kundenportal (Login) | ✅ funktioniert mit echtem Login getestet |
+
+**Noch nicht passiert:** Einsatz auf der Synology (siehe „Offene Punkte“).
+
+## Was fertig ist
+
+| Funktion | Wo im Code |
+|---|---|
+| Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
+| Jahresübersicht mit Farbpunkten, „Nächste Abholungen“, Feiertagsverschiebungen markiert | `app/static/app.js` (`renderMonths`, `renderNext`) |
+| Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
+| Kopfzeile mit Jahres-Umschalter „‹ 2026 ›“ | `app/static/index.html`, `app.css` |
+| Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
+| Papier: Kundenportal **oder** selbst angegebener Rhythmus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
+| Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
+| Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
+| Druckansicht A4 quer, helles/dunkles Design, Handy-Layout | `app/static/app.css` |
+| Docker-Setup für Synology | `Dockerfile`, `docker-compose.yml` |
+| Tests (29, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
+
+### Verlauf
+
+| PR | Inhalt |
+|---|---|
+| – | Erste Version direkt auf `main` |
+| #1 | Abruf bei Berlin Recycling repariert (fehlender Zwischenschritt beim Login), vergangene Papiertermine behalten, lokaler Server liest `.env` |
+| #2 | Kopfzeile neu gestaltet; `Cache-Control: no-cache`, damit Browser nach Updates keine alten CSS/JS-Dateien verwenden |
+| #3 | Info-Kasten für Abholtage |
+
+## Offene Punkte
+
+In etwa nach Wichtigkeit:
+
+1. **Einsatz auf der Synology.** Anleitung steht im README. Der **Docker-Build ist noch nie gelaufen** (auf dem Entwicklungs-Mac ist kein Docker installiert). Beim ersten Build auf dem NAS auf Fehler achten.
+2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
+3. **Nicht geprüft:**
+   - Druckvorschau im Browser (nur per CSS umgesetzt).
+   - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
+   - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
+4. **Kleinigkeiten:**
+   - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
+   - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
+   - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
+5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
+
+## Lokale Umgebung
+
+- Projektordner: `~/Documents/Claude/Projekte/muell-abfuhrkalender-berlin` (wurde einmal umgezogen; alte Pfade in älteren Sessions sind veraltet).
+- `.venv/` – Python 3.12 via `uv`. Nach einem Umzug des Ordners funktioniert sie nicht mehr → löschen und neu anlegen (Befehle in CLAUDE.md).
+- `.env` – existiert lokal mit echten Zugangsdaten fürs Kundenportal. **Nicht lesen, nicht ausgeben, nicht committen.** Zum Prüfen höchstens, *ob* die Werte gesetzt sind.
+- `data/` – lokale Einstellungen und abgerufene Termine (enthält die echte Adresse, daher nicht im Repo).
+- Server starten: `.venv/bin/uvicorn app.main:app --reload --port 8080 --env-file .env`, oder über `.claude/launch.json` (Name `abfuhrkalender`).
+
+## Arbeitsweise
+
+- Branch → Commit → Push → Pull Request → Tests auf GitHub abwarten → Merge (`gh pr merge --merge --delete-branch`) → lokal `main` aktualisieren.
+- **Solange nur eine Person am Repo arbeitet**, darf Claude eigene PRs nach grünen Tests selbst mergen, wenn darum gebeten wird. **Sobald eine zweite Person mitarbeitet, vor jedem Merge fragen.**
+- Pushen nur auf ausdrücklichen Wunsch.
+- Commit-Nachrichten auf Deutsch, Imperativ, mit `Co-Authored-By`-Zeile, wenn Claude beteiligt war.
+- Bei Änderungen an der Oberfläche: im Browser ansehen (hell, dunkel, Handybreite) und im PR schreiben, was nicht geprüft wurde.
+
+## Stolpersteine (schon einmal passiert)
+
+- **Berlin-Recycling-Login:** Nach `Login.aspx/Auth` muss `Default.aspx` einmal per GET geöffnet werden, sonst antworten die Datenabfragen mit `{"Error": …}`. Der Test-Mock in `tests/conftest.py` bildet das über ein Sitzungs-Cookie nach.
+- **Portal-Felder:** `Task Date` (Datum), `Material Description` (z. B. „Altpapier, gemischt“), `Description` ist die Behältergröße. Das Portal liefert nur die nächsten ~10 Termine.
+- **BSR blockt Browser-Aufrufe** (`Origin`-Header → 403). Alles läuft über den Server.
+- **`.env`-Änderungen** wirken erst nach einem Neustart des Servers (`--reload` lädt nur Code neu).
+- **Browser-Cache:** Ohne `Cache-Control` hat ein Browser neue HTML-Seite mit alten CSS/JS kombiniert – sah völlig kaputt aus. Ist behoben (Middleware in `app/main.py`); bei Problemen nach einem Update trotzdem zuerst mit Cmd+Shift+R neu laden.
+- **Tests und echte Webcalls:** `refresh.run()` ohne `client=` erzeugt einen echten HTTP-Client. In Tests immer den Mock-Client aus `conftest.py` übergeben.
+- **Antippen auf dem Handy:** Ein Tipp löst erst `focusin`, dann `click` aus. Ob der Kasten schon offen war, wird deshalb bei `pointerdown` gemerkt (`initTooltip`).
+- **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.

@@ -6,6 +6,8 @@ Hinweise für Claude (und Menschen), die an diesem Repository arbeiten.
 
 Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als Jahreskalender zeigt. Sie läuft im Heimnetz als Docker-Container auf einer Synology. Mehr dazu im [README](README.md).
 
+**Zu Beginn jeder Session [docs/STATUS.md](docs/STATUS.md) lesen** – dort stehen der aktuelle Stand, offene Punkte und bekannte Stolpersteine. Wer etwas abschließt oder Neues herausfindet, aktualisiert die Datei im selben Pull Request.
+
 ## Zusammenarbeit
 
 - Mehrere Personen arbeiten hier mit, nicht alle sind Entwickler. **Antworte auf Deutsch**, erkläre Schritte verständlich und ohne unnötigen Fachjargon. Wenn ein Fachbegriff nötig ist, erkläre ihn kurz.
