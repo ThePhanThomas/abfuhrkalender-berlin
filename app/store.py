@@ -23,6 +23,7 @@ DEFAULT_CONFIG: dict = {
         "first_date": None,  # ISO date, manual mode only
         "interval_weeks": 4,
     },
+    "notify_time": "18:00",  # evening push reminder (HH:MM, Berlin time)
 }
 
 _lock = threading.Lock()

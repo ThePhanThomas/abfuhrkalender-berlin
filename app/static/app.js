@@ -23,6 +23,7 @@ let state = null;
 let selectedYear = null;
 let pendingAddress = null;
 let availableYears = [];
+let offlineSince = null; // null = Server erreichbar; sonst ISO-Zeit des gezeigten Stands ("" = unbekannt)
 
 // ---------- helpers ----------
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -32,8 +33,15 @@ const fmtDate = (s) => { const d = parseIso(s); return `${WEEKDAYS[d.getDay()]},
 const catName = (c) => (state && state.categories[c]) || c;
 const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
+const OFFLINE_MSG = "Keine Verbindung zum Server. Das geht nur im Heimnetz (oder mit Tailscale).";
+
 async function api(path, opts = {}) {
-  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  let res;
+  try {
+    res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  } catch {
+    throw new Error(OFFLINE_MSG);
+  }
   if (!res.ok) {
     let msg = `Fehler ${res.status}`;
     try {
@@ -45,6 +53,25 @@ async function api(path, opts = {}) {
   }
   return res.json();
 }
+
+// Lädt den Stand vom Server. Ist der nicht erreichbar, liefert der Service
+// Worker den zuletzt gespeicherten Stand und markiert ihn mit "X-Offline".
+async function loadState() {
+  let res;
+  try {
+    res = await fetch("/api/state", { headers: { Accept: "application/json" } });
+  } catch {
+    throw new Error(OFFLINE_MSG);
+  }
+  if (!res.ok) throw new Error(`Fehler ${res.status}`);
+  offlineSince = res.headers.get("X-Offline") ? res.headers.get("X-Cached-At") || "" : null;
+  state = await res.json();
+}
+
+const fmtStamp = (isoString) => {
+  const d = new Date(isoString);
+  return `${d.toLocaleDateString("de-DE")}, ${d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr`;
+};
 
 function visiblePickups() {
   const cats = new Set(state.config.categories);
@@ -78,6 +105,12 @@ function renderStatus() {
   }
   $("status").innerHTML = parts.map((p, i) => (i === 0 ? esc(p) : p)).join(" · ");
   const banner = $("banner");
+  banner.classList.toggle("offline", offlineSince !== null);
+  if (offlineSince !== null) {
+    banner.hidden = false;
+    banner.textContent = `Keine Verbindung zum Server – du siehst den gespeicherten Stand${offlineSince ? ` vom ${fmtStamp(offlineSince)}` : ""}. Aktualisieren und Einstellungen gehen nur im Heimnetz (oder mit Tailscale).`;
+    return;
+  }
   banner.hidden = errors.length === 0;
   banner.textContent = errors.length ? `${errors.join(" · ")} — vorhandene Termine bleiben erhalten.` : "";
 }
@@ -321,7 +354,9 @@ function openSettings() {
   $("first-date").value = cfg.paper.first_date || "";
   $("interval").value = cfg.paper.interval_weeks || 4;
   updateManualRow();
+  $("notify-time").value = cfg.notify_time || "18:00";
   $("dlg-settings").showModal();
+  renderPush();
 }
 
 function updateManualRow() {
@@ -365,7 +400,9 @@ async function saveSettings(ev) {
   $("btn-save").disabled = true;
   $("btn-save").textContent = "Speichere…";
   try {
-    state = await api("/api/config", { method: "PUT", body: JSON.stringify({ address: pendingAddress, categories, paper }) });
+    const notify_time = $("notify-time").value || "18:00";
+    state = await api("/api/config", { method: "PUT", body: JSON.stringify({ address: pendingAddress, categories, paper, notify_time }) });
+    offlineSince = null;
     $("dlg-settings").close();
     render();
   } catch (e) {
@@ -373,6 +410,87 @@ async function saveSettings(ev) {
   } finally {
     $("btn-save").disabled = false;
     $("btn-save").textContent = "Speichern";
+  }
+}
+
+// ---------- push reminders ----------
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushAvailable = () => window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+async function swRegistration() {
+  return (await navigator.serviceWorker.getRegistration("/")) || navigator.serviceWorker.register("/sw.js");
+}
+
+async function currentPushSub() {
+  if (!pushAvailable()) return null;
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+function b64urlToBytes(s) {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const bin = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+async function renderPush() {
+  const box = $("push-on");
+  const hint = $("push-hint");
+  $("push-error").textContent = "";
+  let why = "";
+  if (!window.isSecureContext) why = "Push geht nur, wenn die App über ihre HTTPS-Adresse geöffnet wird (siehe Anleitung im README).";
+  else if (isIOS && !isStandalone()) why = "Auf dem iPhone zuerst die App zum Home-Bildschirm hinzufügen: Teilen-Symbol → „Zum Home-Bildschirm“. Dann die App über das neue Symbol öffnen und hier einschalten.";
+  else if (!pushAvailable()) why = "Dieser Browser unterstützt keine Push-Benachrichtigungen.";
+  else if (Notification.permission === "denied") why = "Mitteilungen sind für diese App blockiert. In den Einstellungen des Geräts unter „Mitteilungen“ erlauben.";
+  box.disabled = !!why || offlineSince !== null;
+  hint.textContent = why;
+  const sub = why ? null : await currentPushSub().catch(() => null);
+  box.checked = !!sub;
+  $("btn-push-test").hidden = !sub;
+}
+
+async function togglePush() {
+  const box = $("push-on");
+  const on = box.checked;
+  $("push-error").textContent = "";
+  box.disabled = true;
+  try {
+    if (on) {
+      // Muss direkt aus dem Antippen heraus passieren, sonst fragt iOS nicht.
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") throw new Error("Ohne Erlaubnis für Mitteilungen geht es nicht.");
+      const reg = await swRegistration();
+      await navigator.serviceWorker.ready;
+      const { public_key } = await api("/api/push/key");
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(public_key) });
+      await api("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub.toJSON()) });
+    } else {
+      const sub = await currentPushSub();
+      if (sub) {
+        await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {});
+        await sub.unsubscribe();
+      }
+    }
+  } catch (e) {
+    $("push-error").textContent = e.message;
+  }
+  await renderPush();
+}
+
+async function testPush() {
+  const btn = $("btn-push-test");
+  $("push-error").textContent = "";
+  btn.disabled = true;
+  try {
+    const sub = await currentPushSub();
+    if (!sub) throw new Error("Auf diesem Gerät sind Erinnerungen nicht eingeschaltet.");
+    await api("/api/push/test", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
+    btn.textContent = "Gesendet";
+  } catch (e) {
+    $("push-error").textContent = e.message;
+  } finally {
+    setTimeout(() => { btn.textContent = "Test senden"; btn.disabled = false; }, 1500);
   }
 }
 
@@ -394,9 +512,12 @@ async function refresh() {
   $("btn-refresh-label").textContent = "Lade…";
   try {
     state = await api("/api/refresh", { method: "POST" });
+    offlineSince = null;
     render();
   } catch (e) {
+    if (e.message === OFFLINE_MSG && offlineSince !== null) { renderStatus(); return; } // Hinweis mit Stand bleibt
     $("banner").hidden = false;
+    $("banner").classList.toggle("offline", e.message === OFFLINE_MSG);
     $("banner").textContent = e.message;
   } finally {
     btn.disabled = false;
@@ -433,16 +554,32 @@ async function init() {
   $("settings-form").addEventListener("submit", saveSettings);
   $("btn-cancel").addEventListener("click", () => $("dlg-settings").close());
   document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updateManualRow));
+  $("push-on").addEventListener("change", togglePush);
+  $("btn-push-test").addEventListener("click", testPush);
+
+  // Service Worker: App ohne Serververbindung anzeigen und Push empfangen.
+  // Geht nur über HTTPS (oder localhost); sonst läuft die App wie bisher.
+  if (window.isSecureContext && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+  // Zurück aus dem Hintergrund (z. B. wieder im WLAN): Stand neu laden.
+  const reload = async () => {
+    if (document.visibilityState !== "visible" || !state) return;
+    try { await loadState(); render(); } catch { /* bleibt beim angezeigten Stand */ }
+  };
+  document.addEventListener("visibilitychange", reload);
+  window.addEventListener("online", reload);
 
   try {
-    state = await api("/api/state");
+    await loadState();
   } catch (e) {
     $("banner").hidden = false;
-    $("banner").textContent = `Server nicht erreichbar: ${e.message}`;
+    $("banner").classList.add("offline");
+    $("banner").textContent = e.message;
     return;
   }
   render();
-  if (!state.config.address) openSettings();
+  if (!state.config.address && offlineSince === null) openSettings();
 }
 
 init();

@@ -94,6 +94,19 @@ def client():
 def tmp_data(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("REFRESH_INTERVAL_HOURS", "0")
+    monkeypatch.delenv("VAPID_PRIVATE_KEY", raising=False)
     monkeypatch.delenv("BR_USERNAME", raising=False)
     monkeypatch.delenv("BR_PASSWORD", raising=False)
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def no_real_push(monkeypatch):
+    """Never contact a real push service. Tests that send replace this."""
+    from app import main, push
+
+    def forbidden(*a, **k):
+        raise AssertionError("Echter Push-Versand im Test")
+
+    monkeypatch.setattr(push, "webpush", forbidden)
+    monkeypatch.setattr(main, "PUSH_ENABLED", False)
