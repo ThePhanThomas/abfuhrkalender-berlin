@@ -18,7 +18,7 @@ Die App läuft im Heimnetz auf der Synology (DS723+, Container Manager) und loka
 | Wertstoffe (gelbe Tonne) | BSR-API (Abfuhr durch ALBA) | ✅ funktioniert |
 | Papier | Berlin Recycling Kundenportal (Login) | ✅ funktioniert mit echtem Login getestet |
 
-Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgerufen.
+Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgerufen. Seit 22.11.2026 auch als App auf dem iPhone (über Tailscale-HTTPS), Push-Erinnerung funktioniert.
 
 ## Was fertig ist
 
@@ -62,23 +62,22 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 
 In etwa nach Wichtigkeit:
 
-1. **PWA auf NAS und iPhone einrichten** (Anleitung im README, Abschnitt „Als App aufs iPhone“): Tailscale-Paket, `tailscale serve --bg 8080`, App über die `ts.net`-Adresse zum Home-Bildschirm, Push einschalten und testen. Danach hier festhalten, was geklappt hat.
-2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
-3. **Nicht geprüft:**
+1. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
+2. **Nicht geprüft:**
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
    - Druckvorschau in Safari/Firefox am Mac (geprüft: Chrome mit Rand 0 bis 20 mm und Safari auf dem iPhone, Quer- und Hochformat: je 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
-   - **PWA/Push nur am Mac in Chrome über `localhost` geprüft** (Service Worker, Anzeige ohne Server, Einstellungen). Nicht geprüft: echtes Anmelden für Push (im Testbrowser sind Mitteilungen gesperrt), Zustellung über Apple (`web.push.apple.com`) – insbesondere ob Apple die Platzhalter-Absenderangabe `mailto:abfuhrkalender@example.com` akzeptiert (sonst `VAPID_SUBJECT` setzen), Tailscale auf der Synology (Befehlspfad, Version des Pakets – `serve --bg` braucht Tailscale ab 1.52) und das Ganze auf einem echten iPhone.
+   - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
-4. **Kleinigkeiten:**
+3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
    - Favicon: für 16/32 px eine vereinfachte Fassung des Icons zeichnen – das volle Motiv wird dort zum Klecks. (Die PWA-Icons 180/192/512 px gibt es.)
-5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Mail.
+4. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Mail.
 
 ## Lokale Umgebung
 
@@ -113,6 +112,7 @@ In etwa nach Wichtigkeit:
 - **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.
 - **Einstellungen auf dem iPhone zu breit:** Eingabefelder hatten 13 px Schrift; Safari zoomt bei unter 16 px beim Antippen hinein, danach musste man seitlich scrollen. In der Simulation am Mac nicht nachstellbar, weil dort nicht gezoomt wird – auf einem echten iPhone prüfen.
 - **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
+- **HTTPS-Adresse lud endlos** (erste Einrichtung auf der Synology): `tailscale serve --bg 8080` lief, `http://…ts.net:8080` ging, aber `https://…ts.net` hing. Nach einmaligem `tailscale cert <name>.ts.net` auf dem NAS ging es sofort – vermutlich hing das erste Abholen des Zertifikats. Befehl im README. Der Befehlspfad auf der Synology ist `/var/packages/Tailscale/target/bin/tailscale`.
 - **Service Worker und Push brauchen HTTPS** (Ausnahme: `localhost`). Über `http://<NAS-IP>:8080` meldet sich kein Service Worker an, die App läuft dann wie vorher. Auf dem iPhone geht Push außerdem nur, wenn die App vom Home-Bildschirm geöffnet wird, nicht in Safari.
 - **Offline testen:** Seite einmal laden (Service Worker speichert Seite und `/api/state`), Server stoppen, neu laden → blauer Hinweis mit Stand. Der Service Worker holt immer zuerst frisch vom Server (5 s Wartezeit), deshalb muss die Cache-Version (`CACHE` in `sw.js`) bei Updates nicht erhöht werden.
 - **`data/vapid.json` nicht löschen:** Das ist der Push-Schlüssel des Servers. Ein neuer Schlüssel macht alle Anmeldungen ungültig; jedes Gerät muss Push dann neu einschalten.
