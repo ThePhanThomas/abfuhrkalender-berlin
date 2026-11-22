@@ -206,6 +206,9 @@ function renderMonths() {
         : "";
       g += `<div class="${cls}"${attrs}>${d}</div>`;
     }
+    // Immer sechs Wochenzeilen, damit alle Monatskarten gleich hoch sind
+    const lead = (first.getDay() + 6) % 7;
+    g += '<div class="day pad" aria-hidden="true"></div>'.repeat(42 - lead - days);
     const isCur = selectedYear === now.getFullYear() && m === now.getMonth();
     const isDone = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && m < now.getMonth());
     const isEarlier = isDone && selectedYear === now.getFullYear();
