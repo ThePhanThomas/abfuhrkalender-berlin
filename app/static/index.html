@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Abfuhrkalender</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23378ADD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3'/></svg>">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   <header class="top">
+    <div class="brand">
+    <img class="appicon no-print" src="/static/icon.svg" alt="" width="44" height="44">
     <div class="title">
       <h1>Abfuhrkalender <span class="print-only" id="print-year"></span></h1>
       <button class="address" id="address" type="button" title="Adresse ändern">
@@ -16,6 +18,7 @@
         <span id="address-label">Adresse einrichten</span>
         <svg class="ic edit" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
       </button>
+    </div>
     </div>
     <div class="actions no-print">
       <div class="year" role="group" aria-label="Jahr wählen">
@@ -47,16 +50,16 @@
       </button>
     </div>
   </header>
-  <p class="status" id="status"></p>
   <div class="banner" id="banner" hidden></div>
 
   <section class="no-print" aria-labelledby="next-h">
-    <h2 id="next-h" class="label">Nächste Abholungen</h2>
+    <h2 id="next-h" class="sr-only">Nächste Abholungen</h2>
     <div class="next" id="next"></div>
   </section>
 
   <div class="legend" id="legend"></div>
   <main class="months" id="months"></main>
+  <p class="status" id="status"></p>
   <div class="planner print-only" id="planner" aria-hidden="true"></div>
   <div class="tip" id="tip" role="tooltip" hidden></div>
 
