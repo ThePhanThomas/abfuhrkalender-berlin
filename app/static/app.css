@@ -197,10 +197,10 @@ legend { font-weight: 600; margin-bottom: 8px; }
     --c-HM: #5f5e5a; --c-BI: #8a5a2b;
   }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* Keine feste Blattgröße: iOS/Safari ignorieren margin 0 und drucken mit eigenem Rand (ca. 12,7 mm).
-     Deshalb volle verfügbare Breite und Höhe im Seitenverhältnis – das passt mit und ohne Rand auf eine Seite. */
+  /* Keine feste Blattgröße: iOS/Safari ignorieren margin 0 und drucken mit eigenem Rand (iPhone: ca. 17 mm).
+     Deshalb volle verfügbare Breite und Höhe im Seitenverhältnis, mit etwas Luft nach unten – sonst hängt Safari eine leere Seite an. */
   body {
-    max-width: none; width: auto; height: auto; aspect-ratio: 297 / 198; margin: 0; padding: 9mm 10mm 5mm;
+    max-width: none; width: auto; height: auto; aspect-ratio: 297 / 190; margin: 0; padding: 9mm 10mm 5mm;
     overflow: hidden; background: #fff; color: var(--text); font-size: 8pt;
     display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto minmax(0, 1fr) auto;
     column-gap: 8mm;
