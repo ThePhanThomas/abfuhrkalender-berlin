@@ -103,6 +103,10 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accen
   display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: calc(14px + env(safe-area-inset-top)) 0 14px; margin-bottom: 24px;
 }
+/* iPad-App: Kopf unter die Unschärfe am oberen Rand rücken (Klasse setzt das Skript in index.html).
+   Der Glashintergrund reicht weiter bis ganz nach oben. */
+@media screen { .ipad-app .top { padding-top: calc(14px + var(--ipad-top-gap)); } }
+:root { --ipad-top-gap: 28px; }
 .top::before {
   content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(50% - 50vw); right: calc(50% - 50vw);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
