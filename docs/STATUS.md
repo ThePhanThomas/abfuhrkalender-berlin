@@ -32,7 +32,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Akzentfarbe BSR-Orange (`--accent` für Schrift, `--accent-strong` für Ringe/Rahmen): „Aktualisieren“, heutiger Tag als Ring, Rahmen um den laufenden Monat | `app/static/app.css` |
 | Design hell/dunkel/automatisch per Knopf in der Kopfzeile, pro Gerät gespeichert (`localStorage` „theme“). Ein kleines Skript im `<head>` setzt `data-theme` vor dem ersten Zeichnen; das dunkle Design gilt nur am Bildschirm (`@media screen`), der Ausdruck bleibt hell | `index.html`, `app.js` (`applyTheme`, `cycleTheme`), `app.css` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
-| Kopfzeile mit App-Icon, Überschrift „Abfuhrkalender **Berlin**“ („Berlin“ in BSR-Orange, nur am Bildschirm) und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend), oben um den Systemrand eingerückt (`viewport-fit=cover`, `env(safe-area-inset-*)`) | `app/static/index.html`, `app.css` |
+| Kopfzeile mit App-Icon, Überschrift „Abfuhrkalender **Berlin**“ („Berlin“ in BSR-Orange, nur am Bildschirm) und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend), oben um den Systemrand eingerückt (`viewport-fit=cover`, `env(safe-area-inset-*)`); in der iPad-App 28 px tiefer (Klasse `ipad-app`, `--ipad-top-gap`) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
 | Papier: Kundenportal **oder** selbst angegebener Turnus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
@@ -70,7 +70,8 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Countdown „in 2 Tagen“ statt „2 Tage“, Überschrift mit oranger „Berlin“. Druckansicht unverändert |
 | – | Druck-Fußzeile: Skyline überarbeitet (Funkturm geschwungen, Brandenburger Tor schmaler mit Quadriga, Fernsehturm mit kleinerer Kugel, Endpfeiler an der Oberbaumbrücke). Feiertagsnamen im Druck kleiner (4,6 pt), 25./26.12. heißen „Weihnachten“, Heiligabend und Silvester beschriftet (ohne Feiertagsfarbe, `specialDays`), Safari darf kleine Schrift nicht mehr selbst vergrößern (`text-size-adjust`) |
 | – | Einstellungen neu sortiert (Karten, Kacheln, Schalter, Vorschläge beim Tippen); vergangene Monate als Stapel unter dem laufenden Monat |
-| – | iPad-App: Kopfzeile unter Statusleiste/Fensterknöpfe eingerückt, weil iPadOS dort weichzeichnet und die Schrift unscharf wurde |
+| #26 | iPad-App: Kopfzeile um den Systemrand eingerückt (half auf dem iPad nicht) |
+| – | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt |
 
 ## Offene Punkte
 
@@ -83,7 +84,7 @@ In etwa nach Wichtigkeit:
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - Neues Design, Hell/Dunkel-Umschalter und Monats-Animation nur in Chrome (auch Handybreite) geprüft, nicht in Safari und nicht auf dem echten iPhone. Das Home-Bildschirm-Icon aktualisiert iOS erst, wenn man die App vom Home-Bildschirm entfernt und neu hinzufügt.
-   - Kopfzeile auf dem iPad (App vom Home-Bildschirm, Fenstermodus): Einrückung um den Systemrand nur in Chrome nachgestellt, noch nicht auf dem echten iPad. Falls die Schrift dort weiter unscharf ist, meldet iPadOS den Rand der Fensterknöpfe vermutlich nicht als `safe-area-inset-top` – dann festen Abstand nur für die installierte App (`@media (display-mode: standalone)`) ergänzen.
+   - Kopf in der iPad-App: Ob 28 px Abstand reichen, ist noch nicht auf dem echten iPad bestätigt. Sonst `--ipad-top-gap` in `app.css` anpassen.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
@@ -140,3 +141,4 @@ In etwa nach Wichtigkeit:
 - **Drucken in der iPhone-App geht nicht:** iOS ignoriert `window.print()` in Apps vom Home-Bildschirm stillschweigend. Deshalb zeigt der Drucken-Button dort einen Dialog, der die Seite per `x-safari-https://…/?print=<Jahr>` in Safari öffnet; Safari wählt das Jahr, entfernt den Parameter aus der Adresse und öffnet den Druckdialog (`printPlanner`, Ende von `init` in `app.js`).
 - **Animationen mit Vorher/Nachher-Messung (FLIP):** `getBoundingClientRect()` enthält laufende Transformationen. Zielpunkte deshalb messen, bevor ein Element animiert wird – sonst flogen die Monate beim Einklappen zur alten Stelle des laufenden Monats. Zum Prüfen Animationen anhalten: `document.getAnimations().forEach(a => { a.pause(); a.currentTime = 250; })`.
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.
+- **Unscharfe Schrift oben in der iPad-App:** iPadOS legt im Fenstermodus über Uhrzeit und Fensterknöpfe eine Unschärfe, meldet der Seite dafür aber keinen Rand (`env(safe-area-inset-top)` ist 0, das Einrücken darum half nicht). Deshalb erkennt ein Skript im `<head>` die iPad-App (iPad gibt sich als Mac mit Touchscreen aus, dazu `navigator.standalone`) und setzt die Klasse `ipad-app`; der Kopf rückt dann um `--ipad-top-gap` nach unten.
