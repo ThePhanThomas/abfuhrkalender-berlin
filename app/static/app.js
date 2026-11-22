@@ -244,7 +244,7 @@ function setEarlier(show, animate = false) {
   showEarlier = show;
   const months = $("months");
   // Eine noch laufende Animation sofort beenden, damit sich nichts überlagert
-  months.querySelectorAll(".month, .stack").forEach((el) => el.getAnimations().forEach((a) => a.finish()));
+  months.querySelectorAll(".month, .stack .layer, .stack-label").forEach((el) => el.getAnimations().forEach((a) => a.finish()));
   earlierGhosts.forEach((g) => g.remove());
   earlierGhosts = [];
   $("stack-label")?.setAttribute("aria-expanded", String(show));
@@ -299,7 +299,16 @@ function setEarlier(show, animate = false) {
       { opacity, offset: 0.7 },
       { transform: `translate(${pile.x - c.x}px, ${pile.y - c.y + STACK_TUCK}px) scale(.96)`, opacity: 0 },
     ], { duration: 440, delay: (n - 1 - i) * 22, easing: ease, fill: "both" }).finished);
-    $("stack")?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 300, fill: "backwards" });
+    // Die Stapelkanten schieben sich unter dem laufenden Monat hervor, sobald er (fast) angekommen ist
+    document.querySelectorAll("#stack .layer").forEach((layer) => {
+      const hidden = `translateY(-${layer.classList.contains("l2") ? 16 : 8}px)`;
+      layer.animate([
+        { transform: hidden, opacity: 0 },
+        { opacity: 1, offset: 0.1 },
+        { transform: "none", opacity: 1 },
+      ], { duration: 320, delay: 320, easing: ease, fill: "backwards" });
+    });
+    $("stack-label")?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 380, fill: "backwards" });
     const mine = earlierGhosts;
     Promise.all(done).then(() => {
       mine.forEach((g) => g.remove());
