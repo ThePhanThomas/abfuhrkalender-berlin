@@ -31,29 +31,73 @@ Tests:
 
 ## Betrieb auf der Synology (Container Manager)
 
-Gedacht für DSM 7.2+ mit dem Paket **Container Manager**.
+Läuft auf einer DS723+ mit DSM 7.2 und dem Paket **Container Manager**. Andere Modelle, auf denen der Container Manager läuft (meist „+“-Modelle), sollten genauso funktionieren.
 
-1. In der File Station einen Ordner anlegen, z. B. `/docker/abfuhrkalender`.
-2. Den Inhalt dieses Repos dorthin kopieren (oder per SSH `git clone`).
-3. Darin mit der File Station den Unterordner `data` anlegen. Wichtig: selbst anlegen, sonst legt Docker ihn mit Administrator-Rechten an und die App kann dort nicht speichern.
-4. Dort `.env.example` nach `.env` kopieren und ausfüllen:
-   - Zugangsdaten Berlin Recycling, falls gewünscht.
-   - `PUID`/`PGID`: Benutzer- und Gruppennummer deines NAS-Benutzers, dem der Ordner `data` gehört. Herausfinden per SSH mit dem Befehl `id` (Ausgabe z. B. `uid=1026(…) gid=100(users)` → `PUID=1026`, `PGID=100`). Ohne SSH: in der Systemsteuerung unter **Aufgabenplaner** eine einmalige „Benutzerdefiniertes Skript“-Aufgabe als dein Benutzer anlegen mit `id > /volume1/docker/abfuhrkalender/id.txt`, ausführen, Datei ansehen, Aufgabe und Datei wieder löschen.
-5. Container Manager → **Projekt** → **Erstellen**:
-   - Projektname: `abfuhrkalender`
-   - Pfad: der Ordner aus Schritt 1
-   - Quelle: „Vorhandene docker-compose.yml verwenden“
-6. Projekt starten. Die App ist danach unter `http://<NAS-IP>:8080` erreichbar.
+### Einmalig vorbereiten
 
-Die Termine und Einstellungen liegen im Unterordner `data/` und überleben Updates.
+1. **Paket-Zentrum:** **Container Manager** (legt den freigegebenen Ordner `docker` an), **Git Server** (liefert das Programm `git`, sonst nichts einrichten) und **Text-Editor** installieren.
+2. **Systemsteuerung → Terminal & SNMP:** SSH-Dienst aktivieren. Der eigene NAS-Benutzer muss zur Gruppe „administrators“ gehören.
+3. **Systemsteuerung → Benutzer und Gruppe → Erweitert:** „Benutzer-Home-Dienst aktivieren“ (dort liegt der SSH-Schlüssel).
 
-**Update nach Code-Änderungen:** neuen Stand in den Ordner holen (`git pull`), dann im Container Manager beim Projekt „Erstellen“ (Build) und neu starten.
+### Code aufs NAS holen (Deploy-Key)
+
+Das Repo ist privat. Ein Zugangs-Token ließ sich auf GitHub nicht anlegen (der Button „Generate token“ reagierte nicht), deshalb nutzen wir einen **Deploy-Key**: ein Schlüsselpaar, das das NAS erzeugt und das bei GitHub nur für dieses Repo und nur zum Lesen hinterlegt ist.
+
+Per SSH auf dem NAS (`ssh <benutzer>@<NAS-IP>`):
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/abfuhrkalender -N "" -C "synology-abfuhrkalender"
+printf 'Host github-abfuhrkalender\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/abfuhrkalender\n  IdentitiesOnly yes\n' >> ~/.ssh/config && chmod 600 ~/.ssh/config
+cat ~/.ssh/abfuhrkalender.pub
+```
+
+Die ausgegebene Zeile (`ssh-ed25519 …`) auf GitHub im Repo unter **Settings → Deploy keys → Add deploy key** einfügen, **ohne** „Allow write access“. Dann:
+
+```bash
+ssh -T github-abfuhrkalender   # beim ersten Mal Fingerabdruck prüfen: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
+cd /volume1/docker && git clone github-abfuhrkalender:<github-benutzer>/abfuhrkalender-berlin.git abfuhrkalender
+```
+
+### Einrichten
+
+```bash
+cd /volume1/docker/abfuhrkalender && mkdir data && cp .env.example .env && id
+```
+
+- Den Ordner `data` **selbst** anlegen (wie oben). Sonst legt Docker ihn mit Administrator-Rechten an und die App kann dort nicht speichern.
+- `.env` in der File Station mit dem Text-Editor öffnen und ausfüllen:
+  - `PUID`/`PGID`: die Zahlen hinter `uid=` und `gid=` aus der Ausgabe von `id` (z. B. `1026` und `100`).
+  - `BR_USERNAME`/`BR_PASSWORD`: Login fürs Kundenportal, falls gewünscht. **Jedes `$` doppelt schreiben (`$$`)** – Docker hält `$` sonst für einen Platzhalter und schneidet das Passwort stillschweigend ab; der Login scheitert dann mit „Zugangsdaten prüfen“. Keine Anführungszeichen verwenden. (Nur in der `.env` für Docker; lokal auf dem Mac bleibt das einfache `$`.)
+
+### Starten
+
+Container Manager → **Projekt** → **Erstellen**:
+
+- Projektname: `abfuhrkalender`, Pfad: `/docker/abfuhrkalender`, Quelle: „Vorhandene docker-compose.yml verwenden“
+- „Webportal via Web Station einrichten“: **nicht** anhaken (nicht nötig).
+- „Projekt nach der Erstellung starten“ anhaken, Fertig.
+
+Der erste Build dauert ein paar Minuten. Meldet der Container Manager dabei „Projekt konnte nicht erstellt werden“, lief der Build bei uns trotzdem im Hintergrund weiter – erst ein paar Minuten warten und `http://<NAS-IP>:8080` aufrufen. Den echten Fehler sieht man per SSH mit `cd /volume1/docker/abfuhrkalender && sudo docker compose build`.
+
+Danach ist die App unter `http://<NAS-IP>:8080` erreichbar. Die Termine und Einstellungen liegen in `data/` und überleben Updates.
+
+### Ändern und aktualisieren
+
+- **`.env` geändert:** Ein Neustart reicht nicht, der Container muss neu erstellt werden:
+  ```bash
+  cd /volume1/docker/abfuhrkalender && sudo docker compose up -d --force-recreate
+  ```
+- **Neuer Code:** `git pull` im Projektordner, dann im Container Manager beim Projekt „Erstellen“ (Build) und neu starten – oder per SSH `sudo docker compose up -d --build`.
+- **Prüfen, ob die Zugangsdaten richtig ankommen** (zeigt nur Längen, nicht die Werte):
+  ```bash
+  sudo docker exec abfuhrkalender python -c "import os; p=os.environ.get('BR_PASSWORD',''); print('Länge Passwort:', len(p))"
+  ```
 
 ## Konfiguration (`.env`)
 
 | Variable | Bedeutung |
 |---|---|
-| `BR_USERNAME`, `BR_PASSWORD` | Login Kundenportal Berlin Recycling (nur für Papier-Modus „Kundenportal“) |
+| `BR_USERNAME`, `BR_PASSWORD` | Login Kundenportal Berlin Recycling (nur für Papier-Modus „Kundenportal“). Für Docker jedes `$` als `$$` schreiben. |
 | `REFRESH_INTERVAL_HOURS` | Automatischer Abruf in Stunden, `0` = nur per Button (Standard `168`) |
 | `DATA_DIR` | Speicherort für `config.json`/`pickups.json` (Standard `data`, im Container `/data`) |
 | `PUID`, `PGID` | Benutzer-/Gruppennummer, unter der der Container läuft; muss zum Besitzer von `data/` passen (Standard `1000`) |
