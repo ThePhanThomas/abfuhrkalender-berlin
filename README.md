@@ -3,7 +3,7 @@
 Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse – als kleine Web-App fürs Heimnetz (z. B. auf einer Synology).
 
 - **Hausmüll, Biogut, Wertstoffe (gelbe Tonne)** – automatisch von der BSR, inkl. Feiertagsverschiebungen. Wertstoffe, die ALBA abholt, kommen ebenfalls über die BSR.
-- **Papier (Berlin Recycling)** – entweder per Login ins Kundenportal (für Eigentümer/Verwaltungen) oder als selbst angegebener Rhythmus.
+- **Papier (Berlin Recycling)** – entweder per Login ins Kundenportal (für Eigentümer/Verwaltungen) oder als selbst angegebener Turnus.
 - Button „Daten aktualisieren“, zusätzlich automatischer Abruf (Standard: wöchentlich).
 - Kalender-Abo (`.ics`) fürs Handy, optional mit Erinnerung am Vorabend.
 - Druckansicht A4 quer.
@@ -121,7 +121,7 @@ app/
   ics.py                Kalender-Export
   sources/bsr.py        BSR (Adresssuche + Termine)
   sources/berlin_recycling.py  Kundenportal
-  sources/manual.py     Papier-Rhythmus von Hand
+  sources/manual.py     Papier-Turnus von Hand
   static/               Oberfläche (HTML/CSS/JS, kein Build-Schritt)
 tests/                  pytest, alle Webcalls gemockt
 ```

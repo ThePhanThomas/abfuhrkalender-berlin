@@ -6,16 +6,17 @@ from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Optional
 
-# Category codes used throughout the app. BSR uses HM/BI/WS/LT/WB natively.
+# Category codes that can be chosen in the settings. BSR uses HM/BI/WS/LT/WB
+# natively. Sources may also return other codes ("GL" for Glas from the
+# customer portal, "SO" for anything unknown); those are not offered because no
+# source reliably delivers them, and they are never shown.
 CATEGORIES: dict[str, str] = {
     "HM": "Hausmüll",
     "BI": "Biogut",
     "WS": "Wertstoffe",
     "PP": "Papier",
-    "GL": "Glas",
     "LT": "Laubtonne",
     "WB": "Weihnachtsbaum",
-    "SO": "Sonstiges",
 }
 
 DEFAULT_CATEGORIES = ["HM", "BI", "WS", "PP"]

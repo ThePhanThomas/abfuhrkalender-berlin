@@ -22,10 +22,8 @@
   --c-BI: #8b4a1c;   /* Bio: dunkles Braun, klar abgesetzt vom Gelb */
   --c-WS: #f2c400;   /* Wertstoffe: Zitronengelb statt Orangegelb */
   --c-PP: #378add;
-  --c-GL: #1d9e75;
   --c-LT: #639922;
   --c-WB: #0f6e56;
-  --c-SO: #993556;
   color-scheme: light dark;
 }
 

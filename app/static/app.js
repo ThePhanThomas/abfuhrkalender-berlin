@@ -11,7 +11,6 @@ const CAT_ICONS = {
   BI: '<path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/>',
   WS: '<path d="M10 3h4v3l2 3v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9l2-3z"/><path d="M8 13h8"/>',
   PP: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
-  GL: '<path d="M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v7M8 21h8"/>',
   LT: '<path d="M12 21v-8M12 13c-5 0-8-3-8-8 5 0 8 3 8 8zM12 13c5 0 8-3 8-8-5 0-8 3-8 8z"/>',
   WB: '<path d="M12 3l5 7h-3l4 6H6l4-6H7zM12 16v5"/>',
   SO: '<circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2"/>',
