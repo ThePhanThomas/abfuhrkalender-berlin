@@ -215,12 +215,12 @@ function renderMonths() {
     const section = `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}${isEarlier ? " earlier" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
     // Im laufenden Jahr liegen die vergangenen Monate als Stapel unter dem laufenden Monat.
     html += isCur && m > 0 ? `<div class="cur-wrap">
+      <button type="button" class="stack-label" id="stack-label" aria-expanded="false">${m === 1 ? MONTHS[0] : `${MONTHS[0]} – ${MONTHS[m - 1]}`}
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
       <div class="stack-box">
         <button type="button" class="stack" id="stack" tabindex="-1" aria-hidden="true"><span class="layer l2"></span><span class="layer l1"></span></button>
         ${section}
       </div>
-      <button type="button" class="stack-label" id="stack-label" aria-expanded="false">${m === 1 ? MONTHS[0] : `${MONTHS[0]} – ${MONTHS[m - 1]}`}
-        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
     </div>` : section;
   }
   const earlier = selectedYear === now.getFullYear() ? now.getMonth() : 0;
@@ -238,7 +238,7 @@ function renderMonths() {
 // Vergangene Monate auf- und zuklappen. Animiert sieht es aus, als würden die Karten unter dem
 // laufenden Monat hervor ausgeteilt bzw. wieder daruntergeschoben (FLIP: vorher/nachher messen).
 let earlierGhosts = [];
-const STACK_TUCK = 10; // so viele Pixel rutschen die Karten unter den laufenden Monat (dort schauen die Kanten hervor)
+const STACK_TUCK = -10; // so viele Pixel rutschen die Karten nach oben unter den laufenden Monat (dort schauen die Kanten hervor)
 
 function setEarlier(show, animate = false) {
   showEarlier = show;
@@ -299,9 +299,9 @@ function setEarlier(show, animate = false) {
       { opacity, offset: 0.7 },
       { transform: `translate(${pile.x - c.x}px, ${pile.y - c.y + STACK_TUCK}px) scale(.96)`, opacity: 0 },
     ], { duration: 440, delay: (n - 1 - i) * 22, easing: ease, fill: "both" }).finished);
-    // Die Stapelkanten schieben sich unter dem laufenden Monat hervor, sobald er (fast) angekommen ist
+    // Die Stapelkanten schieben sich oben unter dem laufenden Monat hervor, sobald er (fast) angekommen ist
     document.querySelectorAll("#stack .layer").forEach((layer) => {
-      const hidden = `translateY(-${layer.classList.contains("l2") ? 16 : 8}px)`;
+      const hidden = `translateY(${layer.classList.contains("l2") ? 16 : 8}px)`;
       layer.animate([
         { transform: hidden, opacity: 0 },
         { opacity: 1, offset: 0.1 },
