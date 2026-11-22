@@ -1,62 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- App-Icon: Rolltonne vor Kalenderblatt mit Fernsehturm. Hell/dunkel per prefers-color-scheme. -->
+  <!-- App-Icon: Tonne, Kalenderblatt, Fernsehturm. Hell: BSR-Orange, dunkel: Nachtblau (per prefers-color-scheme).
+       Die Kopfzeile der Seite zeigt dieselbe Grafik inline in index.html (folgt dort dem gewählten Design). -->
   <style>
     .bg { fill: url(#bg-light); }
-    .ink { fill: #1e2a38; }
-    .cal-frame { stroke: #1e2a38; }
-    .bin { fill: #1e2a38; }
-    .tower { fill: #1e2a38; }
-    .wheel { fill: #1e2a38; }
-    .accent { fill: #f07d00; }
+    .tower { fill: #ffffff; opacity: 0.5; }
+    .head { fill: #1f2733; }
+    .rid { stroke: #f39200; stroke-opacity: 0.3; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: url(#bg-dark); }
-      .ink, .wheel { fill: #ffffff; }
-      .cal-frame { stroke: #ffffff; }
-      .bin { fill: url(#bin-dark); }
-      .tower { fill: #f07d00; }
+      .tower { fill: #f39200; opacity: 1; }
+      .head { fill: #f39200; }
+      .rid { stroke: #1f2733; stroke-opacity: 0.12; }
     }
   </style>
   <defs>
-    <linearGradient id="bg-light" x1="0" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef0f3"/></linearGradient>
-    <linearGradient id="bg-dark" x1="0" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#2c3644"/><stop offset="1" stop-color="#151b23"/></linearGradient>
-    <linearGradient id="bin-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9530"/><stop offset="1" stop-color="#e86500"/></linearGradient>
-    <clipPath id="card"><rect x="232" y="150" width="210" height="246" rx="32"/></clipPath>
-    <g id="tower"><path d="M391 70h6l4 104h-14z"/><circle cx="394" cy="212" r="25"/><path d="M387 236h14l6 160h-26z"/></g>
-    <g id="bin"><path d="M138 108h84a12 12 0 0 1 12 12v12H126v-12a12 12 0 0 1 12-12z"/><rect x="80" y="132" width="200" height="40" rx="14"/><path d="M96 186h168l-17 214a22 22 0 0 1-22 20H135a22 22 0 0 1-22-20z"/></g>
-    <circle id="wheel" cx="250" cy="394" r="38"/>
-    <!-- Aussparungen: schmale Spalten zwischen den Teilen -->
-    <mask id="cut-cal" maskUnits="userSpaceOnUse" x="-20" y="-20" width="552" height="552">
-      <rect x="-20" y="-20" width="552" height="552" fill="#fff"/>
-      <g fill="#000" stroke="#000" stroke-linejoin="round">
-        <use href="#tower" stroke-width="14"/><use href="#bin" stroke-width="18"/><use href="#wheel" stroke-width="16"/>
-      </g>
-    </mask>
-    <mask id="cut-tower" maskUnits="userSpaceOnUse" x="-20" y="-20" width="552" height="552">
-      <rect x="-20" y="-20" width="552" height="552" fill="#fff"/>
-      <g fill="#000" stroke="#000" stroke-linejoin="round"><use href="#bin" stroke-width="18"/><use href="#wheel" stroke-width="16"/></g>
-    </mask>
-    <mask id="cut-bin" maskUnits="userSpaceOnUse" x="-20" y="-20" width="552" height="552">
-      <rect x="-20" y="-20" width="552" height="552" fill="#fff"/>
-      <use href="#wheel" fill="#000" stroke="#000" stroke-width="16"/>
-    </mask>
-    <mask id="cut-hub" maskUnits="userSpaceOnUse" x="-20" y="-20" width="552" height="552">
-      <rect x="-20" y="-20" width="552" height="552" fill="#fff"/>
-      <circle cx="250" cy="394" r="14" fill="#000"/>
+    <linearGradient id="bg-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb540"/><stop offset="1" stop-color="#e06e00"/></linearGradient>
+    <linearGradient id="bg-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a475a"/><stop offset="1" stop-color="#10141b"/></linearGradient>
+    <!-- Schmale Aussparung um das Kalenderblatt, damit es sich von Tonne und Turm abhebt -->
+    <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/><rect x="48.5" y="48.5" width="37" height="37" rx="8.5" fill="#000"/>
     </mask>
   </defs>
   <rect class="bg" width="512" height="512" rx="114"/>
-  <g transform="translate(-6 4)">
-    <g mask="url(#cut-cal)">
-      <rect class="cal-frame" x="243" y="161" width="188" height="224" rx="22" fill="none" stroke-width="22"/>
-      <rect class="ink" x="232" y="150" width="210" height="58" clip-path="url(#card)"/>
-      <g class="ink">
-        <rect x="282" y="232" width="30" height="30" rx="6"/><rect x="322" y="232" width="30" height="30" rx="6"/>
-        <rect x="282" y="274" width="30" height="30" rx="6"/><rect x="322" y="316" width="30" height="30" rx="6"/>
-      </g>
-      <rect class="accent" x="322" y="274" width="30" height="30" rx="6"/>
+  <g id="art" transform="scale(5.12)">
+    <g mask="url(#cut)">
+    <path class="tower" d="M73.6 10h.8l.6 19h-2zM72.5 37h3l1 15h-5z"/><circle class="tower" cx="74" cy="33" r="5"/>
+    <g fill="#fff">
+      <path d="M34 26v-3.5q0-2.5 2.5-2.5h11q2.5 0 2.5 2.5V26h-3.5v-2.5h-9V26z"/>
+      <rect x="22" y="26" width="40" height="8" rx="3"/>
+      <path d="M25 37h34l-3 41q-.4 4-4 4H32q-3.6 0-4-4z"/>
     </g>
-    <use href="#tower" class="tower" mask="url(#cut-tower)"/>
-    <use href="#bin" class="bin" mask="url(#cut-bin)"/>
-    <use href="#wheel" class="wheel" mask="url(#cut-hub)"/>
+    <path class="rid" d="M36 45v28M42 45v28M48 45v28" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <rect x="50" y="50" width="34" height="34" rx="7" fill="#fff"/>
+    <path class="head" d="M50 59v-2a7 7 0 0 1 7-7h20a7 7 0 0 1 7 7v2z"/>
+    <g fill="#c9cdd3">
+      <rect x="54.75" y="64" width="5.5" height="5.5" rx="1.5"/><rect x="64.25" y="64" width="5.5" height="5.5" rx="1.5"/><rect x="73.75" y="64" width="5.5" height="5.5" rx="1.5"/>
+      <rect x="54.75" y="73.5" width="5.5" height="5.5" rx="1.5"/><rect x="64.25" y="73.5" width="5.5" height="5.5" rx="1.5"/>
+    </g>
+    <rect x="73.75" y="73.5" width="5.5" height="5.5" rx="1.5" fill="#f39200"/>
   </g>
 </svg>

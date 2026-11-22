@@ -224,12 +224,90 @@ function renderMonths() {
   renderPlanner(byDay);
 }
 
-function setEarlier(show) {
+let earlierRun = 0; // zählt Umschaltungen, damit eine laufende Ausblend-Animation nicht später dazwischenfunkt
+
+function setEarlier(show, animate = false) {
   showEarlier = show;
+  const run = ++earlierRun;
   const btn = $("earlier-toggle");
-  $("months").classList.toggle("show-earlier", show);
+  const months = $("months");
   btn.setAttribute("aria-expanded", String(show));
   btn.textContent = `${btn.dataset.range} ${show ? "ausblenden" : "anzeigen"}`;
+  const earlier = [...months.querySelectorAll(".month.earlier")];
+  earlier.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+  if (!animate || !months.animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    months.classList.toggle("show-earlier", show);
+    return;
+  }
+  const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+  // Die übrigen Monate gleiten an ihren neuen Platz statt zu springen (FLIP: vorher/nachher messen).
+  const slide = (change, duration) => {
+    const others = [...months.querySelectorAll(".month:not(.earlier)")];
+    const before = others.map((el) => el.getBoundingClientRect());
+    change();
+    others.forEach((el, i) => {
+      const after = el.getBoundingClientRect();
+      const dx = before[i].left - after.left, dy = before[i].top - after.top;
+      if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration, easing: ease });
+    });
+  };
+  if (show) {
+    slide(() => months.classList.add("show-earlier"), 320);
+    earlier.forEach((el, i) => {
+      el.animate(
+        [{ opacity: 0, transform: "translateY(-10px) scale(0.97)" }, { opacity: getComputedStyle(el).opacity, transform: "none" }],
+        { duration: 280, delay: i * 22, easing: ease, fill: "backwards" },
+      );
+    });
+  } else {
+    const n = earlier.length;
+    const out = earlier.map((el, i) => el.animate(
+      [{ opacity: getComputedStyle(el).opacity, transform: "none" }, { opacity: 0, transform: "translateY(-8px) scale(0.97)" }],
+      { duration: 110, delay: (n - 1 - i) * 5, easing: "ease-in", fill: "forwards" },
+    ).finished);
+    Promise.all(out).then(() => {
+      if (run !== earlierRun) return;
+      slide(() => months.classList.remove("show-earlier"), 220);
+      earlier.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    }).catch(() => { /* abgebrochen durch erneutes Umschalten */ });
+  }
+}
+
+// ---------- theme: automatic (system), light or dark, remembered per device ----------
+const THEMES = {
+  auto: { next: "light", label: "automatisch (wie das Gerät)", icon: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M12 7.5h5.5M12 12h6.5M12 16.5h5.5" },
+  light: { next: "dark", label: "hell", icon: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" },
+  dark: { next: "auto", label: "dunkel", icon: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
+};
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+let themeChoice = (() => {
+  try { const t = localStorage.getItem("theme"); return t === "light" || t === "dark" ? t : "auto"; } catch { return "auto"; }
+})();
+
+function applyTheme() {
+  const choice = themeChoice;
+  const dark = choice === "auto" ? systemDark.matches : choice === "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  // Farbe der Browser-/Statusleiste: bei fester Wahl für beide Systemmodi gleich
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  metas.forEach((m) => {
+    const forDark = choice === "auto" ? m.media.includes("dark") : dark;
+    m.content = forDark ? "#1a1a19" : "#f7f6f2";
+  });
+  const t = THEMES[choice];
+  $("theme-icon").setAttribute("d", t.icon);
+  const text = `Darstellung: ${t.label}. Wechseln zu ${THEMES[t.next].label.split(" (")[0]}`;
+  $("btn-theme").setAttribute("aria-label", text);
+  $("btn-theme").title = text;
+}
+
+function cycleTheme() {
+  themeChoice = THEMES[themeChoice].next;
+  try {
+    if (themeChoice === "auto") localStorage.removeItem("theme"); else localStorage.setItem("theme", themeChoice);
+  } catch { /* ohne Speicher gilt die Wahl nur bis zum Neuladen */ }
+  applyTheme();
 }
 
 // ---------- print: year planner (one column per month, room to write) ----------
@@ -560,6 +638,9 @@ async function refresh() {
 
 async function init() {
   initTooltip();
+  applyTheme();
+  $("btn-theme").addEventListener("click", cycleTheme);
+  systemDark.addEventListener("change", applyTheme);
   $("btn-refresh").addEventListener("click", refresh);
   $("btn-settings").addEventListener("click", openSettings);
   $("address").addEventListener("click", openSettings);
@@ -578,7 +659,7 @@ async function init() {
     renderYears();
     renderMonths();
   };
-  $("months").addEventListener("click", (e) => { if (e.target.closest("#earlier-toggle")) setEarlier(!showEarlier); });
+  $("months").addEventListener("click", (e) => { if (e.target.closest("#earlier-toggle")) setEarlier(!showEarlier, true); });
   $("year-prev").addEventListener("click", () => stepYear(-1));
   $("year-next").addEventListener("click", () => stepYear(1));
   $("btn-search").addEventListener("click", searchAddress);
