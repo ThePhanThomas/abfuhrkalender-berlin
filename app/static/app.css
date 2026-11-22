@@ -224,6 +224,7 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .hl-what { font-weight: 600; }
 .hl-date { font-size: 12px; color: var(--text-3); }
 .hl-row .rel { margin-left: auto; font-size: 13px; color: var(--text-2); background: var(--muted-bg); padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.hl-empty { margin: 0; padding: 8px 16px; text-align: center; font-size: 13px; color: var(--text-3); }
 .empty { color: var(--text-2); font-size: 14px; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 20px 24px; margin: 0; }
 
 @media (max-width: 760px) { .next { grid-template-columns: minmax(0, 1fr); } }
@@ -238,6 +239,12 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 14px; font-size: 13px; align-items: center; }
 .legend .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 12px 4px 5px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); }
 .legend .chip .tile { --s: 22px; border-radius: 50%; }
+/* Chips sind Filter: Antippen blendet die Müllart aus bzw. wieder ein */
+button.chip { font: inherit; color: inherit; border: 0; min-height: 0; cursor: pointer; transition: opacity .15s, box-shadow .15s; }
+button.chip:hover { box-shadow: var(--shadow), 0 0 0 1.5px var(--border-strong); }
+button.chip.off { opacity: .5; box-shadow: none; background: transparent; outline: 1.5px dashed var(--border-strong); outline-offset: -1.5px; }
+button.chip.off .tile { filter: grayscale(1); }
+button.chip.off:hover { opacity: .75; }
 .legend-moved { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
 .moved-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 
@@ -307,6 +314,23 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 
 dialog { border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
 dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+/* Dialoge fahren von unten ins Bild und beim Schließen wieder hinaus (.closing setzt closeDialog) */
+@media (prefers-reduced-motion: no-preference) {
+  dialog[open] { animation: dlg-in .32s cubic-bezier(.2, .9, .3, 1); }
+  dialog[open]::backdrop { animation: dlg-fade .32s ease; }
+  dialog.sheet[open] { animation-name: sheet-in; }
+  dialog[open].closing { animation: dlg-out .22s cubic-bezier(.4, 0, 1, 1) forwards; }
+  dialog.sheet[open].closing { animation-name: sheet-out; }
+  dialog[open].closing::backdrop { animation: dlg-fade-out .22s ease forwards; }
+  /* Design-Wechsel: alte Ansicht bleibt stehen, neue wächst als Kreis darüber (cycleTheme) */
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+}
+@keyframes dlg-in { from { opacity: 0; transform: translateY(48px) scale(.97); } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(72px); } }
+@keyframes dlg-fade { from { opacity: 0; } }
+@keyframes dlg-out { to { opacity: 0; transform: translateY(48px) scale(.97); } }
+@keyframes sheet-out { to { opacity: 0; transform: translateY(72px); } }
+@keyframes dlg-fade-out { to { opacity: 0; } }
 fieldset { border: 0; padding: 0; margin: 0 0 18px; }
 legend { font-weight: 600; margin-bottom: 8px; }
 .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
@@ -424,6 +448,8 @@ input.switch:disabled { opacity: .5; cursor: default; }
   .sheet-foot { padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); }
   .cat-tiles { grid-template-columns: repeat(2, 1fr); }
   dialog { width: calc(100vw - 24px); max-width: none; padding: 16px; }
+  @keyframes sheet-in { from { transform: translateY(100%); } }
+  @keyframes sheet-out { to { transform: translateY(100%); } }
   .row label { min-width: 0; flex-basis: 100%; }
   .row label.short { flex: 1 1 0; }
   /* Unter 16 px zoomt Safari auf dem iPhone beim Antippen hinein – dann muss man seitlich scrollen */
@@ -462,6 +488,7 @@ input.switch:disabled { opacity: .5; cursor: default; }
 
   .legend { grid-column: 2; grid-row: 1; align-self: end; margin: 0 0 1mm; gap: 1.5mm 4.5mm; font-size: 8pt; color: var(--text-2); }
   .legend .chip { padding: 0; gap: 1.2mm; background: none; box-shadow: none; }
+  .legend .chip.off { display: none; }
   .legend .chip .tile { --s: 2.6mm; background: var(--c); }
   .legend .chip .tile .ic { display: none; }
   .legend-moved { margin-left: 0; gap: 1.2mm; font-size: 8pt; color: var(--text-2); }
