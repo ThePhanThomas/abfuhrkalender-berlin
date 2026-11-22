@@ -154,7 +154,7 @@ function renderNext() {
   const first = items.filter((p) => p.date === items[0].date);
   const rest = items.filter((p) => p.date !== items[0].date);
   const n = daysUntil(first[0]);
-  const count = n === 0 ? `<b>Heute</b>` : n === 1 ? `<b>Morgen</b>` : `<b>${n}</b><span>Tage</span>`;
+  const count = n === 0 ? `<b>Heute</b>` : n === 1 ? `<b>Morgen</b>` : `<span class="pre">in</span><b>${n}</b><span>Tagen</span>`;
   const hero = `<div class="hero-main${n <= 1 ? " soon" : ""}" style="--c: var(--c-${first[0].category})">
       <div class="hero-tiles">${first.map((p) => tile(p.category)).join("")}</div>
       <div class="hero-text">

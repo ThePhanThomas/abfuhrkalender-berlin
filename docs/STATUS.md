@@ -26,12 +26,12 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 |---|---|
 | Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
 | Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt. Im laufenden Jahr sind vergangene Monate eingeklappt („Januar – Oktober anzeigen“), nach jedem Laden wieder; Ein-/Ausblenden ist animiert (übrige Monate gleiten mit, bei „Bewegung reduzieren“ ohne Animation); Druck zeigt immer das ganze Jahr | `app/static/app.js` (`renderMonths`, `setEarlier`) |
-| „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben mit Farbstreifen der Müllart am linken Rand; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
+| „Nächste Abholung“ als große Karte mit Countdown („in / 2 / Tagen“ gestapelt, sonst „Heute“/„Morgen“), übrige Müllarten als Liste daneben mit Farbstreifen der Müllart am linken Rand; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
 | App-Icon (Tonne, Kalenderblatt, Fernsehturm): hell in BSR-Orange, dunkel in Nachtblau, jeweils mit feinem Verlauf. `icon.svg` (Favicon, Vorlage für die PNGs) folgt dem System; die Kopfzeile zeigt dieselbe Grafik inline, damit sie dem gewählten Design folgt – Änderungen an beiden Stellen machen | `app/static/icon.svg`, `index.html` (`.appicon`), PNGs per `tools/make_icons.py` |
 | Akzentfarbe BSR-Orange (`--accent` für Schrift, `--accent-strong` für Ringe/Rahmen): „Aktualisieren“, heutiger Tag als Ring, Rahmen um den laufenden Monat | `app/static/app.css` |
 | Design hell/dunkel/automatisch per Knopf in der Kopfzeile, pro Gerät gespeichert (`localStorage` „theme“). Ein kleines Skript im `<head>` setzt `data-theme` vor dem ersten Zeichnen; das dunkle Design gilt nur am Bildschirm (`@media screen`), der Ausdruck bleibt hell | `index.html`, `app.js` (`applyTheme`, `cycleTheme`), `app.css` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
-| Kopfzeile mit App-Icon und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
+| Kopfzeile mit App-Icon, Überschrift „Abfuhrkalender **Berlin**“ („Berlin“ in BSR-Orange, nur am Bildschirm) und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
 | Papier: Kundenportal **oder** selbst angegebener Turnus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
@@ -65,7 +65,8 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | README und Repo-Beschreibung allgemeiner: Betrieb auf jedem Rechner mit Docker, Synology nur noch als Beispiel |
 | – | Liste „Danach“: Farbstreifen der Müllart am linken Kartenrand, Trennlinien zwischen den Zeilen |
 | – | Push-Hinweise bei verschobenen/geänderten Terminen und bei fehlschlagenden Abrufen |
-| – | Neues App-Icon (BSR-Orange/Nachtblau), Akzentfarbe Orange statt Blau, Umschalter hell/dunkel/automatisch, Animation beim Ein-/Ausblenden vergangener Monate. Druckansicht unverändert |
+| #20 | Neues App-Icon (BSR-Orange/Nachtblau), Akzentfarbe Orange statt Blau, Umschalter hell/dunkel/automatisch, Animation beim Ein-/Ausblenden vergangener Monate. Druckansicht unverändert |
+| – | Countdown „in 2 Tagen“ statt „2 Tage“, Überschrift mit oranger „Berlin“. Druckansicht unverändert |
 
 ## Offene Punkte
 
