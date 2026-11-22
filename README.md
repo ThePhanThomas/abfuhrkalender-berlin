@@ -11,6 +11,8 @@ Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse –
 
 Die Adresse wird in der App eingerichtet und nur lokal in `data/config.json` gespeichert – im Code steht keine Adresse.
 
+> **Kein offizielles Angebot.** Dieses Projekt ist privat entstanden und steht in keiner Verbindung zur Berliner Stadtreinigung (BSR), zu ALBA oder zu Berlin Recycling. Es nutzt nur Daten, die dort ohnehin abrufbar sind. Alle Angaben ohne Gewähr – maßgeblich sind die Termine der Entsorger.
+
 ## Lokal starten (Mac/Linux)
 
 Voraussetzung: [uv](https://docs.astral.sh/uv/) oder Python 3.12.
@@ -191,3 +193,7 @@ app/
 tools/make_icons.py     erzeugt die PNG-Icons aus static/icon.svg (braucht Chrome)
 tests/                  pytest, alle Webcalls gemockt
 ```
+
+## Lizenz
+
+[MIT](LICENSE) – der Code darf frei genutzt, verändert und weitergegeben werden, solange der Lizenzhinweis erhalten bleibt. Die verwendeten Python-Bibliotheken (siehe `requirements.txt`) stehen unter ihren eigenen, ebenfalls freien Lizenzen.
