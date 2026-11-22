@@ -25,7 +25,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Funktion | Wo im Code |
 |---|---|
 | Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
-| Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt | `app/static/app.js` (`renderMonths`) |
+| Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt. Im laufenden Jahr sind vergangene Monate eingeklappt („Januar – Oktober anzeigen“), nach jedem Laden wieder; Druck zeigt immer das ganze Jahr | `app/static/app.js` (`renderMonths`, `setEarlier`) |
 | „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
 | App-Icon (Tonne, Kalenderblatt, Fernsehturm), wechselt selbst zwischen hell und dunkel; dient auch als Favicon | `app/static/icon.svg` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
@@ -57,6 +57,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Bio kräftiger braun, Wertstoffe zitronengelb (waren schwer zu unterscheiden); Einstellungsdialog auf dem Handy: Eingabefelder 16 px, damit Safari nicht hineinzoomt, Felder untereinander |
 | – | Glas und Sonstiges aus den Einstellungen entfernt (keine Quelle liefert dafür Termine); „Rhythmus“ heißt jetzt „Turnus“ |
 | – | PWA: Home-Bildschirm-Symbol, Anzeige ohne Server, Push-Erinnerung am Vorabend; HTTPS über Tailscale (Anleitung im README). Neue Abhängigkeiten `pywebpush`, `tzdata` |
+| – | Vergangene Monate des laufenden Jahres eingeklappt, per Zeile einblendbar |
 
 ## Offene Punkte
 
