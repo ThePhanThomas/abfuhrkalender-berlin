@@ -106,12 +106,16 @@ Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server e
    ```bash
    sudo /var/packages/Tailscale/target/bin/tailscale serve --bg 8080
    ```
-   Die Ausgabe zeigt die Adresse `https://<nas-name>.<tailnet>.ts.net`. Das erste Öffnen kann ein paar Sekunden dauern, weil dann das Zertifikat geholt wird. Abschalten mit `… tailscale serve --https=443 off`.
+   Die Ausgabe zeigt die Adresse `https://<nas-name>.<tailnet>.ts.net`. Abschalten mit `… tailscale serve --https=443 off`.
+4. **Lädt die HTTPS-Adresse endlos** (bei uns beim ersten Mal passiert), während `http://<nas-name>.<tailnet>.ts.net:8080` geht: Das Zertifikat einmal von Hand holen, danach ging es sofort. Die Dateien landen in `/tmp` und werden nicht gebraucht (die `.key`-Datei ist geheim, also löschen):
+   ```bash
+   cd /tmp && sudo /var/packages/Tailscale/target/bin/tailscale cert <nas-name>.<tailnet>.ts.net && sudo rm <nas-name>.<tailnet>.ts.net.crt <nas-name>.<tailnet>.ts.net.key
+   ```
 
 ### Auf dem iPhone (iOS 16.4 oder neuer)
 
 1. App **Tailscale** aus dem App Store installieren, mit demselben Konto anmelden, VPN einschalten.
-2. In **Safari** die Adresse `https://<nas-name>.<tailnet>.ts.net` öffnen → Teilen-Symbol → **Zum Home-Bildschirm**.
+2. In **Safari** die Adresse `https://<nas-name>.<tailnet>.ts.net` öffnen → Teilen-Symbol (ggf. hinter „…“) → **Zum Home-Bildschirm** („Als Web-App öffnen“ anlassen).
 3. Die App über das neue Symbol öffnen → **Einstellungen** → „Erinnerung per Push“ einschalten, Mitteilungen erlauben, **Test senden**.
 
 Gut zu wissen:
