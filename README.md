@@ -11,7 +11,7 @@ Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse –
 
 Die Adresse wird in der App eingerichtet und nur lokal in `data/config.json` gespeichert – im Code steht keine Adresse.
 
-> **Kein offizielles Angebot.** Dieses Projekt ist privat entstanden und steht in keiner Verbindung zur Berliner Stadtreinigung (BSR), zu ALBA oder zu Berlin Recycling. Es nutzt nur Daten, die dort ohnehin abrufbar sind. Alle Angaben ohne Gewähr – maßgeblich sind die Termine der Entsorger.
+> **Kein offizielles Angebot.** Dies ist ein Freizeitprojekt und steht in keiner Verbindung zur Berliner Stadtreinigung (BSR), zu ALBA oder zu Berlin Recycling. Es nutzt nur Daten, die dort ohnehin abrufbar sind. Alle Angaben ohne Gewähr – maßgeblich sind die Termine der Entsorger.
 
 ## Lokal starten (Mac/Linux)
 
@@ -41,11 +41,10 @@ Die App wird als Docker-Container gebaut und gestartet (`Dockerfile`, `docker-co
 Per Terminal bzw. SSH auf dem Rechner:
 
 ```bash
-git clone <repo-adresse> abfuhrkalender
+git clone https://github.com/ThePhanThomas/abfuhrkalender-berlin.git abfuhrkalender
 cd abfuhrkalender && mkdir data && cp .env.example .env && id
 ```
 
-- `<repo-adresse>`: Das Repo ist privat; wie man es ohne Passwort mit einem Deploy-Key holt, steht [im Synology-Beispiel](#code-aufs-nas-holen-deploy-key) und funktioniert auf jedem Linux-Rechner gleich.
 - Den Ordner `data` **selbst** anlegen (wie oben). Sonst legt Docker ihn mit Administrator-Rechten (`root`) an und die App kann dort nicht speichern.
 - `.env` mit einem Texteditor ausfüllen:
   - `PUID`/`PGID`: die Zahlen hinter `uid=` und `gid=` aus der Ausgabe von `id` (auf vielen Linux-Rechnern `1000`, auf der Synology oft `1026` und `100`).
@@ -78,26 +77,16 @@ Läuft auf einer DS723+ mit DSM 7.2 und dem Paket **Container Manager**. Andere 
 
 1. **Paket-Zentrum:** **Container Manager** (legt den freigegebenen Ordner `docker` an), **Git Server** (liefert das Programm `git`, sonst nichts einrichten) und **Text-Editor** installieren.
 2. **Systemsteuerung → Terminal & SNMP:** SSH-Dienst aktivieren. Der eigene NAS-Benutzer muss zur Gruppe „administrators“ gehören.
-3. **Systemsteuerung → Benutzer und Gruppe → Erweitert:** „Benutzer-Home-Dienst aktivieren“ (dort liegt der SSH-Schlüssel).
 
-#### Code aufs NAS holen (Deploy-Key)
-
-Das Repo ist privat. Ein Zugangs-Token ließ sich auf GitHub nicht anlegen (der Button „Generate token“ reagierte nicht), deshalb nutzen wir einen **Deploy-Key**: ein Schlüsselpaar, das das NAS erzeugt und das bei GitHub nur für dieses Repo und nur zum Lesen hinterlegt ist. Das funktioniert genauso auf jedem anderen Linux-Rechner.
+#### Code aufs NAS holen
 
 Per SSH auf dem NAS (`ssh <benutzer>@<NAS-IP>`):
 
 ```bash
-mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/abfuhrkalender -N "" -C "synology-abfuhrkalender"
-printf 'Host github-abfuhrkalender\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/abfuhrkalender\n  IdentitiesOnly yes\n' >> ~/.ssh/config && chmod 600 ~/.ssh/config
-cat ~/.ssh/abfuhrkalender.pub
+cd /volume1/docker && git clone https://github.com/ThePhanThomas/abfuhrkalender-berlin.git abfuhrkalender
 ```
 
-Die ausgegebene Zeile (`ssh-ed25519 …`) auf GitHub im Repo unter **Settings → Deploy keys → Add deploy key** einfügen, **ohne** „Allow write access“. Dann:
-
-```bash
-ssh -T github-abfuhrkalender   # beim ersten Mal Fingerabdruck prüfen: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
-cd /volume1/docker && git clone github-abfuhrkalender:<github-benutzer>/abfuhrkalender-berlin.git abfuhrkalender
-```
+Das Repo ist öffentlich, dafür braucht es kein GitHub-Konto und keinen Schlüssel.
 
 #### Einrichten
 
