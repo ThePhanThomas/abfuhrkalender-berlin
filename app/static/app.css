@@ -112,7 +112,9 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accen
 [data-theme="dark"] .appicon .tower { fill: #f39200; opacity: 1; }
 [data-theme="dark"] .appicon .head { fill: #f39200; }
 [data-theme="dark"] .appicon .rid { stroke: #1f2733; stroke-opacity: 0.12; }
-h1 { font-size: 19px; letter-spacing: -0.01em; line-height: 1.2; }
+h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.brand-city { font-weight: 500; color: var(--accent-strong); } /* „Berlin“ in BSR-Orange, nicht im Ausdruck */
+[data-theme="dark"] .brand-city { color: var(--accent); }
 .title { min-width: 0; }
 .address {
   display: inline-flex; align-items: center; gap: 5px; margin-top: 1px;
@@ -196,6 +198,7 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .count { margin-left: auto; text-align: center; z-index: 1; flex: none; }
 .count b { display: block; font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: var(--c); }
 .count span { font-size: 12px; color: var(--text-3); }
+.count .pre { display: block; margin-bottom: 3px; } /* „in“ über der Zahl: in / 2 / Tagen */
 .count.word b { font-size: 26px; }
 [data-theme="dark"] .count b { color: color-mix(in srgb, var(--c) 75%, white); }
 .hero-main.soon { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
