@@ -74,9 +74,26 @@ const fmtStamp = (isoString) => {
   return `${d.toLocaleDateString("de-DE")}, ${d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr`;
 };
 
+// Müllarten, die per Filter (Chips über dem Kalender) ausgeblendet sind – pro Gerät gespeichert
+let hiddenCats = (() => {
+  try { return new Set(JSON.parse(localStorage.getItem("hidden-cats") || "[]")); } catch { return new Set(); }
+})();
+const shownCats = () => state.config.categories.filter((c) => !hiddenCats.has(c));
+
 function visiblePickups() {
-  const cats = new Set(state.config.categories);
+  const cats = new Set(shownCats());
   return state.pickups.filter((p) => cats.has(p.category));
+}
+
+function toggleCat(c) {
+  if (hiddenCats.has(c)) hiddenCats.delete(c);
+  else if (shownCats().length > 1) hiddenCats.add(c); // mindestens eine Müllart bleibt sichtbar
+  else return;
+  try { localStorage.setItem("hidden-cats", JSON.stringify([...hiddenCats])); } catch { /* gilt dann bis zum Neuladen */ }
+  renderNext();
+  renderLegend();
+  renderMonths();
+  $("legend").querySelector(`[data-cat="${c}"]`)?.focus();
 }
 
 // ---------- rendering ----------
@@ -137,10 +154,21 @@ function renderYears() {
   document.title = `Abfuhrkalender ${selectedYear}`;
 }
 
+// Bei aktivem Filter behalten die Karten die Größe, die sie ohne Filter hätten: erst alle
+// Müllarten zeichnen und messen, dann gefiltert zeichnen und die Mindesthöhen setzen.
 function renderNext() {
+  const el = $("next");
+  if (!hiddenCats.size) { fillNext(visiblePickups()); return; }
+  fillNext(state.pickups.filter((p) => state.config.categories.includes(p.category)));
+  const h = (sel) => el.querySelector(sel)?.getBoundingClientRect().height || 0;
+  const keep = { hero: h(".hero-main"), list: h(".hero-list"), single: el.classList.contains("single") };
+  fillNext(visiblePickups(), keep);
+}
+
+function fillNext(pickups, keep = null) {
   const today = iso(new Date());
   const next = new Map();
-  for (const p of visiblePickups()) {
+  for (const p of pickups) {
     if (p.date >= today && !next.has(p.category)) next.set(p.category, p);
   }
   const items = [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -166,13 +194,24 @@ function renderNext() {
     </div>`;
   const list = rest.length ? `<div class="hero-list">${rest.map((p) => `<div class="hl-row" style="--c: var(--c-${p.category})">${tile(p.category)}
       <div class="hl-text"><div class="hl-what">${esc(catName(p.category))}</div><div class="hl-date">${fmtLong(p.date)}${moved(p)}</div></div>
-      <span class="rel">${relativeDay(p.date)}</span></div>`).join("")}</div>` : "";
-  $("next").classList.toggle("single", !rest.length);
-  $("next").innerHTML = hero + list;
+      <span class="rel">${relativeDay(p.date)}</span></div>`).join("")}</div>`
+    : keep && !keep.single ? `<div class="hero-list"><p class="hl-empty">Weitere Müllarten ausgeblendet</p></div>` : "";
+  const el = $("next");
+  el.classList.toggle("single", keep ? keep.single : !rest.length);
+  el.innerHTML = hero + list;
+  if (keep) {
+    el.querySelector(".hero-main").style.minHeight = `${keep.hero}px`;
+    const l = el.querySelector(".hero-list");
+    if (l) l.style.minHeight = `${keep.list}px`;
+  }
 }
 
 function renderLegend() {
-  const html = state.config.categories.map((c) => `<span class="chip">${tile(c)}${esc(catName(c))}</span>`);
+  const html = state.config.categories.map((c) => {
+    const on = !hiddenCats.has(c);
+    const tip = `${catName(c)} ${on ? "ausblenden" : "einblenden"}`;
+    return `<button type="button" class="chip${on ? "" : " off"}" data-cat="${esc(c)}" aria-pressed="${on}" title="${esc(tip)}">${tile(c)}${esc(catName(c))}</button>`;
+  });
   html.push(`<span class="legend-moved"><span class="moved-mark"></span>Feiertagsverschiebung</span>`);
   $("legend").innerHTML = html.join("");
 }
@@ -248,7 +287,7 @@ function setEarlier(show, animate = false) {
   earlierGhosts.forEach((g) => g.remove());
   earlierGhosts = [];
   $("stack-label")?.setAttribute("aria-expanded", String(show));
-  if (!animate || !months.animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (!animate || !months.animate || reducedMotion()) {
     months.classList.toggle("show-earlier", show);
     return;
   }
@@ -346,12 +385,46 @@ function applyTheme() {
   $("btn-theme").title = text;
 }
 
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 function cycleTheme() {
   themeChoice = THEMES[themeChoice].next;
   try {
     if (themeChoice === "auto") localStorage.removeItem("theme"); else localStorage.setItem("theme", themeChoice);
   } catch { /* ohne Speicher gilt die Wahl nur bis zum Neuladen */ }
-  applyTheme();
+  const before = document.documentElement.dataset.theme;
+  const after = (themeChoice === "auto" ? systemDark.matches : themeChoice === "dark") ? "dark" : "light";
+  // Neues Design breitet sich als Kreis vom Knopf aus (View Transitions; ohne Unterstützung sofort)
+  if (before === after || !document.startViewTransition || reducedMotion()) { applyTheme(); return; }
+  const r = $("btn-theme").getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  const vt = document.startViewTransition(applyTheme);
+  vt.ready.then(() => {
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+      { duration: 550, easing: "cubic-bezier(.4, 0, .2, 1)", pseudoElement: "::view-transition-new(root)" },
+    );
+  }).catch(() => {});
+}
+
+// ---------- dialogs: slide in (CSS) and out again before closing ----------
+function closeDialog(dlg) {
+  if (!dlg.open || dlg.classList.contains("closing")) return;
+  dlg.classList.add("closing");
+  const anims = dlg.getAnimations(); // leer bei „Bewegung reduzieren“ → sofort zu
+  const done = Promise.all(anims.map((a) => a.finished)).catch(() => {});
+  // Sicherheitsnetz: falls eine Animation nie endet (z. B. Tab im Hintergrund), trotzdem schließen
+  Promise.race([done, new Promise((r) => setTimeout(r, 400))]).then(() => { dlg.close(); dlg.classList.remove("closing"); });
+}
+function initDialogs() {
+  document.querySelectorAll("dialog").forEach((dlg) => {
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(dlg); }); // Esc
+    dlg.addEventListener("close", () => dlg.classList.remove("closing"));
+    // Formulare mit method="dialog" (Schließen-Knöpfe) erst ausfahren lassen
+    const form = dlg.querySelector('form[method="dialog"]');
+    if (form && dlg.id !== "dlg-settings") form.addEventListener("submit", (e) => { e.preventDefault(); closeDialog(dlg); });
+  });
 }
 
 // ---------- print: year planner (one column per month, room to write) ----------
@@ -613,7 +686,7 @@ async function saveSettings(ev) {
     const notify_time = $("notify-time").value || "18:00";
     state = await api("/api/config", { method: "PUT", body: JSON.stringify({ address: pendingAddress, categories, paper, notify_time }) });
     offlineSince = null;
-    $("dlg-settings").close();
+    closeDialog($("dlg-settings"));
     render();
   } catch (e) {
     $("settings-error").textContent = e.message;
@@ -747,6 +820,7 @@ async function refresh() {
 
 async function init() {
   initTooltip();
+  initDialogs();
   applyTheme();
   $("btn-theme").addEventListener("click", cycleTheme);
   systemDark.addEventListener("change", applyTheme);
@@ -772,6 +846,17 @@ async function init() {
     if (e.target.closest("#stack, #stack-label")) setEarlier(true, true);
     else if (e.target.closest("#earlier-toggle")) setEarlier(false, true);
   });
+  // Gemessene Kartenhöhen (Filter) passen nur zur aktuellen Fensterbreite
+  let resizeFrame = 0;
+  window.addEventListener("resize", () => {
+    if (!hiddenCats.size || !state) return;
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(renderNext);
+  });
+  $("legend").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip[data-cat]");
+    if (chip) toggleCat(chip.dataset.cat);
+  });
   $("year-prev").addEventListener("click", () => stepYear(-1));
   $("year-next").addEventListener("click", () => stepYear(1));
   $("btn-addr-edit").addEventListener("click", () => {
@@ -783,8 +868,8 @@ async function init() {
   $("number").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(); } });
   $("street").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("number").focus(); } });
   $("settings-form").addEventListener("submit", saveSettings);
-  $("btn-cancel").addEventListener("click", () => $("dlg-settings").close());
-  $("btn-close").addEventListener("click", () => $("dlg-settings").close());
+  $("btn-cancel").addEventListener("click", () => closeDialog($("dlg-settings")));
+  $("btn-close").addEventListener("click", () => closeDialog($("dlg-settings")));
   $("cats").addEventListener("change", updatePaper);
   document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updatePaper));
   $("interval-down").addEventListener("click", () => stepInterval(-1));
