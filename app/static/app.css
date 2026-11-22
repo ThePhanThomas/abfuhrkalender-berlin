@@ -145,6 +145,26 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
 .dot.moved { outline: 1.5px solid var(--danger); outline-offset: 1px; }
 
+.day[data-date] { cursor: pointer; }
+.day[data-date]:hover { outline: 1px solid var(--border-strong); }
+.day[data-date]:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+
+.tip {
+  position: absolute; z-index: 10; width: max-content; max-width: min(280px, calc(100vw - 16px));
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); padding: 10px 12px; font-size: 13px; pointer-events: none;
+}
+.tip[hidden] { display: none; }
+.tip-head { display: flex; justify-content: space-between; gap: 16px; font-weight: 600; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
+.tip-rel { font-weight: 400; color: var(--text-2); }
+.tip ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tip li { display: flex; gap: 8px; align-items: flex-start; }
+.tip li .dot { width: 10px; height: 10px; margin-top: 4px; flex: none; }
+.tip-name { font-weight: 600; font-size: 14px; }
+.tip-provider, .tip-note { color: var(--text-2); }
+.tip-moved { color: var(--danger); font-weight: 500; }
+
 dialog { border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--text); }
 dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
 fieldset { border: 0; padding: 0; margin: 0 0 18px; }
@@ -171,7 +191,7 @@ legend { font-weight: 600; margin-bottom: 8px; }
   @page { size: A4 landscape; margin: 10mm; }
   :root { --bg: #fff; --surface: #fff; --muted-bg: #f1efe8; --text: #000; }
   body { max-width: none; padding: 0; font-size: 11px; }
-  .no-print, .status, .banner, .address .edit { display: none !important; }
+  .no-print, .status, .banner, .address .edit, .tip { display: none !important; }
   .print-only { display: inline; }
   .address { color: #000; }
   .months { grid-template-columns: repeat(4, 1fr); gap: 6px; }
