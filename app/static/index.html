@@ -57,7 +57,54 @@
 
   <div class="legend" id="legend"></div>
   <main class="months" id="months"></main>
+  <div class="planner print-only" id="planner" aria-hidden="true"></div>
   <div class="tip" id="tip" role="tooltip" hidden></div>
+
+  <!-- Nur im Ausdruck: kleine Berliner Skyline als Fußzeile -->
+  <footer class="print-only print-foot" aria-hidden="true">
+    <svg class="skyline" viewBox="0 0 800 60" preserveAspectRatio="xMidYMax meet">
+      <g class="sky">
+        <!-- Funkturm -->
+        <polygon points="44,57 49,14 51,14 56,57"/><rect x="45.5" y="15" width="9" height="3"/><rect x="45" y="39" width="10" height="2"/><rect x="49.6" y="2" width="0.8" height="13"/>
+        <!-- Siegessäule -->
+        <rect x="114" y="50" width="22" height="7"/><rect x="118" y="44" width="14" height="6"/><rect x="122.5" y="18" width="5" height="26"/><rect x="120.5" y="15.5" width="9" height="2.5"/>
+        <path d="M125 15.5v-5l-4.5-3.5 4.5 1.5 0-3 1.2 0 0 3 4.5-1.5-4.5 3.5v5z"/>
+        <!-- Brandenburger Tor -->
+        <rect x="183" y="44" width="12" height="13"/><rect x="285" y="44" width="12" height="13"/>
+        <rect x="193" y="30" width="94" height="6"/><rect x="224" y="26" width="32" height="4"/>
+        <path d="M231 26v-5h3l1-3 2 2 1-3 2 3h1l1-3 2 3 1-3 2 2 1 3h3v4z"/>
+        <rect x="196" y="36" width="4" height="21"/><rect x="212" y="36" width="4" height="21"/><rect x="228" y="36" width="4" height="21"/>
+        <rect x="248" y="36" width="4" height="21"/><rect x="264" y="36" width="4" height="21"/><rect x="280" y="36" width="4" height="21"/>
+        <!-- Reichstag -->
+        <rect x="312" y="37" width="88" height="20"/><rect x="310" y="30" width="13" height="27"/><rect x="389" y="30" width="13" height="27"/>
+        <path d="M336 37a20 17 0 0 1 40 0z"/><rect x="355.4" y="17" width="1.2" height="4"/>
+        <!-- Fernsehturm -->
+        <rect x="466" y="51" width="28" height="6"/>
+        <polygon points="477,57 478.7,26 481.3,26 483,57"/><circle cx="480" cy="19.5" r="7.5"/><rect x="476.5" y="26" width="7" height="1.6"/>
+        <rect x="478.9" y="4" width="2.2" height="9"/><rect x="479.6" y="0" width="0.8" height="5"/>
+        <!-- Rotes Rathaus -->
+        <rect x="530" y="40" width="72" height="17"/><rect x="558" y="19" width="16" height="21"/><rect x="560" y="12" width="12" height="7"/><rect x="565.6" y="4" width="0.8" height="8"/>
+        <!-- Oberbaumbrücke -->
+        <path d="M640 44H780V57H774A11 9 0 0 0 752 57H746A11 9 0 0 0 724 57H718A11 9 0 0 0 696 57H690A11 9 0 0 0 668 57H662A11 9 0 0 0 640 57Z"/>
+        <rect x="690" y="24" width="7" height="20"/><rect x="717" y="24" width="7" height="20"/>
+        <polygon points="689,24 693.5,15 698,24"/><polygon points="716,24 720.5,15 725,24"/>
+        <rect x="0" y="57" width="800" height="1.2"/>
+      </g>
+      <!-- U-Bahn auf der Oberbaumbrücke -->
+      <g class="ubahn"><rect x="734" y="37" width="40" height="7" rx="1.5"/></g>
+      <g class="ubahn-win"><rect x="737" y="38.6" width="5" height="2.6"/><rect x="745" y="38.6" width="5" height="2.6"/><rect x="753" y="38.6" width="5" height="2.6"/><rect x="761" y="38.6" width="5" height="2.6"/><rect x="768" y="38.6" width="3.5" height="2.6"/></g>
+      <!-- Müllwagen unterwegs -->
+      <g class="truck">
+        <path d="M409 54V44.5a2 2 0 0 1 2-2h26V54z"/><path d="M438 54V47h6.5l4 4V54z"/>
+      </g>
+      <rect class="truck-win" x="440" y="48.3" width="4.5" height="2.8"/>
+      <g class="wheels"><circle cx="416" cy="55" r="2.6"/><circle cx="432" cy="55" r="2.6"/><circle cx="443.5" cy="55" r="2.6"/></g>
+    </svg>
+    <div class="foot-text">
+      <span class="motto">Na, Tonne schon rausjestellt?</span>
+      <span>Stand: <span id="print-date"></span> · Alle Angaben ohne Gewähr</span>
+    </div>
+  </footer>
 
   <dialog id="dlg-settings">
     <form method="dialog" id="settings-form">

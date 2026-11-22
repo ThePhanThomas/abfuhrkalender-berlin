@@ -75,6 +75,7 @@ function renderYears() {
   availableYears = sorted;
   $("year").textContent = selectedYear;
   $("print-year").textContent = selectedYear;
+  $("print-date").textContent = fmtDate(iso(new Date())).slice(4);
   $("year-prev").disabled = selectedYear <= sorted[0];
   $("year-next").disabled = selectedYear >= sorted[sorted.length - 1];
   document.title = `Abfuhrkalender ${selectedYear}`;
@@ -140,6 +141,58 @@ function renderMonths() {
   dayIndex = byDay;
   hideTip();
   $("months").innerHTML = html;
+  renderPlanner(byDay);
+}
+
+// ---------- print: year planner (one column per month, room to write) ----------
+function easterSunday(y) {
+  // Gauss/Meeus algorithm for the Gregorian calendar
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, month - 1, day);
+}
+
+function berlinHolidays(y) {
+  const e = easterSunday(y);
+  const rel = (n) => iso(new Date(y, e.getMonth(), e.getDate() + n));
+  return new Map([
+    [`${y}-01-01`, "Neujahr"], [`${y}-03-08`, "Frauentag"], [rel(-2), "Karfreitag"], [rel(1), "Oster\u00admontag"],
+    [`${y}-05-01`, "Tag der Arbeit"], [rel(39), "Himmel\u00adfahrt"], [rel(50), "Pfingst\u00admontag"],
+    [`${y}-10-03`, "Dt. Einheit"], [`${y}-12-25`, "1. Weih\u00adnachten"], [`${y}-12-26`, "2. Weih\u00adnachten"],
+  ]);
+}
+
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+}
+
+function renderPlanner(byDay) {
+  const y = selectedYear;
+  const holidays = berlinHolidays(y);
+  let html = "";
+  for (let m = 0; m < 12; m++) {
+    const days = new Date(y, m + 1, 0).getDate();
+    let rows = "";
+    for (let d = 1; d <= 31; d++) {
+      if (d > days) { rows += `<div class="pl-row pl-none"></div>`; continue; }
+      const date = new Date(y, m, d);
+      const key = iso(date);
+      const wd = date.getDay();
+      const hol = holidays.get(key);
+      const cls = ["pl-row", wd === 0 || wd === 6 ? "pl-we" : "", wd === 1 ? "pl-mo" : "", hol ? "pl-hol" : ""].join(" ");
+      const dots = (byDay.get(key) || []).map((p) => `<span class="dot${p.moved_from ? " moved" : ""}" style="--c: var(--c-${p.category})"></span>`).join("");
+      const kw = wd === 1 ? `<span class="pl-kw">${isoWeek(date)}</span>` : "";
+      rows += `<div class="${cls}"><span class="pl-d">${d}</span><span class="pl-wd">${WEEKDAYS[wd]}</span>`
+        + `<span class="pl-dots">${dots}</span><span class="pl-note">${hol ? esc(hol) : ""}</span>${kw}</div>`;
+    }
+    html += `<section class="pl-month"><h3>${MONTHS[m]}</h3>${rows}</section>`;
+  }
+  $("planner").innerHTML = html;
 }
 
 // ---------- day tooltip ----------
