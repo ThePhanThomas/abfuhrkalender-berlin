@@ -23,21 +23,27 @@ from app.sources import bsr
 log = logging.getLogger("abfuhrkalender")
 STATIC = Path(__file__).parent / "static"
 REFRESH_HOURS = float(os.environ.get("REFRESH_INTERVAL_HOURS", "168"))
+RETRY_HOURS = 6.0
 PUSH_ENABLED = os.environ.get("PUSH_ENABLED", "1") != "0"
 
 
+def _refresh_due(data: dict, now: datetime) -> bool:
+    """Stored data older than REFRESH_HOURS, or (if a source failed) older than RETRY_HOURS."""
+    updated = data.get("updated_at")
+    if not updated:
+        return True
+    age_h = (now - datetime.fromisoformat(updated)).total_seconds() / 3600
+    limit = REFRESH_HOURS
+    if any(s.get("ok") is False for s in data.get("sources", {}).values()):
+        limit = min(limit, RETRY_HOURS)
+    return age_h >= limit
+
+
 async def _auto_refresh_loop() -> None:
-    """Refresh automatically when the stored data is older than REFRESH_HOURS."""
+    """Refresh automatically when the stored data is old enough (see _refresh_due)."""
     while True:
         try:
-            data = store.load_data()
-            updated = data.get("updated_at")
-            age_h = (
-                (datetime.now(timezone.utc) - datetime.fromisoformat(updated)).total_seconds() / 3600
-                if updated
-                else None
-            )
-            if store.load_config().get("address") and (age_h is None or age_h >= REFRESH_HOURS):
+            if store.load_config().get("address") and _refresh_due(store.load_data(), datetime.now(timezone.utc)):
                 log.info("Automatischer Abruf startet")
                 await asyncio.to_thread(refresh.run)
         except Exception:  # never let the loop die
@@ -52,6 +58,10 @@ async def _push_loop() -> None:
             await asyncio.to_thread(push.run_due)
         except Exception:  # never let the loop die
             log.exception("Erinnerung fehlgeschlagen")
+        try:
+            await asyncio.to_thread(push.run_alerts)
+        except Exception:
+            log.exception("Hinweise fehlgeschlagen")
         await asyncio.sleep(60)
 
 

@@ -150,6 +150,7 @@ Gut zu wissen:
 - Ist Tailscale aus oder der Server nicht erreichbar, zeigt die App den zuletzt geladenen Stand mit einem blauen Hinweis. Aktualisieren und Einstellungen gehen dann nicht.
 - Push-Erinnerungen kommen immer, auch ohne Tailscale: Der Server schickt sie über Apple an das iPhone.
 - Die Uhrzeit (Standard 18 Uhr) gilt für alle Geräte; ein- und ausgeschaltet wird pro Gerät. Erinnert wird nur, wenn am nächsten Tag eine der angezeigten Müllarten abgeholt wird.
+- Zusätzlich kommen Hinweise (nur zwischen 8 und 21 Uhr): etwa eine Woche vorher, wenn ein Termin verschoben ist (z. B. wegen eines Feiertags); wenn sich beim Abruf ein Termin der nächsten zwei Wochen geändert hat; und wenn der Abruf einer Quelle zweimal hintereinander fehlschlägt (und wieder, sobald er klappt). Nach einem Fehlschlag versucht die App es nach 6 Stunden erneut.
 - Jedes Gerät meldet sich einzeln an. Wird die App vom Home-Bildschirm gelöscht, entfernt der Server die Anmeldung beim nächsten Versand von selbst.
 
 ## Konfiguration (`.env`)
@@ -181,7 +182,7 @@ app/
   refresh.py            ruft alle Quellen ab, speichert Ergebnis
   store.py              config.json / pickups.json
   ics.py                Kalender-Export
-  push.py               Push-Erinnerung (Schlüssel, Anmeldungen, Versand)
+  push.py               Push-Erinnerung und Hinweise (Schlüssel, Anmeldungen, Versand)
   sources/bsr.py        BSR (Adresssuche + Termine)
   sources/berlin_recycling.py  Kundenportal
   sources/manual.py     Papier-Turnus von Hand

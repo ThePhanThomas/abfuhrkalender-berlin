@@ -38,8 +38,9 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
 | PWA: Symbol auf dem Home-Bildschirm (Manifest, PNG-Icons), Service Worker zeigt ohne Server den letzten Stand mit blauem Hinweis „Stand vom …“ | `app/static/sw.js`, `manifest.webmanifest`, `icons/`, `app.js` (`loadState`), Icons per `tools/make_icons.py` |
 | Push-Erinnerung am Vorabend (Uhrzeit einstellbar, Standard 18 Uhr; pro Gerät ein-/ausschaltbar, „Test senden“). Schlüssel in `data/vapid.json`, Geräte in `data/push.json` | `app/push.py`, `app/main.py` (`/api/push/*`, `_push_loop`), `app.js` (`renderPush`, `togglePush`) |
+| Push-Hinweise (08–21 Uhr): Vorwarnung ca. 7 Tage vor einem verschobenen Termin (`moved_from`), „Termin geändert“ bei Abweichungen zwischen zwei Abrufen (nächste 14 Tage, nur BSR bei gleicher Adresse und Berlin Recycling), Meldung ab dem 2. Fehlschlag einer Quelle und „klappt wieder“. Nach einem Fehlschlag neuer Abruf nach 6 h. Abend-Erinnerung nennt Verschiebung. Fehlerbanner zeigt „(seit TT.MM.)“. Gemerkt in `push.json` (`failure_alerted`, `moved_announced`, `changes_sent`), Änderungen in `pickups.json` (`changes`) | `app/push.py` (`run_alerts`, `_collect_alerts`), `app/refresh.py` (`detect_changes`, `fail_count`/`failed_since`), `app/main.py` (`_refresh_due`) |
 | Docker-Setup für jeden Rechner mit Docker (im Einsatz auf einer Synology DS723+), Benutzernummer per `PUID`/`PGID`; README erklärt erst den allgemeinen Weg, dann die Synology als Beispiel | `Dockerfile`, `docker-compose.yml`, README |
-| Tests (44, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
+| Tests (56, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
 
@@ -61,6 +62,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Drucken in der iPhone-App: Hinweis-Dialog mit „In Safari öffnen“, Safari druckt dann von selbst (`?print=<Jahr>`) |
 | – | README und Repo-Beschreibung allgemeiner: Betrieb auf jedem Rechner mit Docker, Synology nur noch als Beispiel |
 | – | Liste „Danach“: Farbstreifen der Müllart am linken Kartenrand, Trennlinien zwischen den Zeilen |
+| – | Push-Hinweise bei verschobenen/geänderten Terminen und bei fehlschlagenden Abrufen |
 
 ## Offene Punkte
 
@@ -77,6 +79,7 @@ In etwa nach Wichtigkeit:
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
    - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
+   - Push-Hinweise (Verschiebung, Termin geändert, Abruffehler) nur in Tests geprüft, noch nicht live beobachtet. Erste echte Feiertagsverschiebung: Weihnachten/Neujahr 2026/27. Das Fehlerbanner mit „(seit …)“ ist nicht im Browser angesehen.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
@@ -121,6 +124,7 @@ In etwa nach Wichtigkeit:
 - **HTTPS-Adresse lud endlos** (erste Einrichtung auf der Synology): `tailscale serve --bg 8080` lief, `http://…ts.net:8080` ging, aber `https://…ts.net` hing. Nach einmaligem `tailscale cert <name>.ts.net` auf dem NAS ging es sofort – vermutlich hing das erste Abholen des Zertifikats. Befehl im README. Der Befehlspfad auf der Synology ist `/var/packages/Tailscale/target/bin/tailscale`.
 - **Service Worker und Push brauchen HTTPS** (Ausnahme: `localhost`). Über `http://<NAS-IP>:8080` meldet sich kein Service Worker an, die App läuft dann wie vorher. Auf dem iPhone geht Push außerdem nur, wenn die App vom Home-Bildschirm geöffnet wird, nicht in Safari.
 - **Offline testen:** Seite einmal laden (Service Worker speichert Seite und `/api/state`), Server stoppen, neu laden → blauer Hinweis mit Stand. Der Service Worker holt immer zuerst frisch vom Server (5 s Wartezeit), deshalb muss die Cache-Version (`CACHE` in `sw.js`) bei Updates nicht erhöht werden.
+- **Verschiebung erkennen:** Die BSR meldet Feiertagsverschiebungen als neuen Termin mit `moved_from`; der alte Termin fällt dabei aus der Liste. `detect_changes` überspringt solche Termine, sonst käme fälschlich „entfällt“. Berlin Recycling kennt kein `moved_from`, dort hilft nur der Vergleich zweier Abrufe.
 - **`data/vapid.json` nicht löschen:** Das ist der Push-Schlüssel des Servers. Ein neuer Schlüssel macht alle Anmeldungen ungültig; jedes Gerät muss Push dann neu einschalten.
 - **Drucken in der iPhone-App geht nicht:** iOS ignoriert `window.print()` in Apps vom Home-Bildschirm stillschweigend. Deshalb zeigt der Drucken-Button dort einen Dialog, der die Seite per `x-safari-https://…/?print=<Jahr>` in Safari öffnet; Safari wählt das Jahr, entfernt den Parameter aus der Adresse und öffnet den Druckdialog (`printPlanner`, Ende von `init` in `app.js`).
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.

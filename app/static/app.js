@@ -90,6 +90,13 @@ function render() {
   renderMonths();
 }
 
+function failedSuffix(s) {
+  if (!s.failed_since) return "";
+  const since = new Date(s.failed_since);
+  if (Date.now() - since.getTime() <= 24 * 3600 * 1000) return "";
+  return ` (seit ${since.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })})`;
+}
+
 function renderStatus() {
   const parts = [];
   if (state.updated_at) {
@@ -102,7 +109,7 @@ function renderStatus() {
   for (const [name, s] of Object.entries(state.sources)) {
     const label = SOURCE_NAMES[name] || name;
     if (s.ok) parts.push(`${esc(label)} ok (${s.count} Termine)`);
-    else { parts.push(`<span class="bad">${esc(label)}: Fehler</span>`); errors.push(`${label}: ${s.error}`); }
+    else { parts.push(`<span class="bad">${esc(label)}: Fehler</span>`); errors.push(`${label}: ${s.error}${failedSuffix(s)}`); }
   }
   $("status").innerHTML = parts.map((p, i) => (i === 0 ? esc(p) : p)).join(" · ");
   const banner = $("banner");
