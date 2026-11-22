@@ -52,6 +52,8 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 In etwa nach Wichtigkeit:
 
 1. **Einsatz auf der Synology.** Anleitung steht im README. Der **Docker-Build ist noch nie gelaufen** (auf dem Entwicklungs-Mac ist kein Docker installiert). Beim ersten Build auf dem NAS auf Fehler achten.
+   - Die App läuft im Container unter der Benutzernummer aus `PUID`/`PGID` (`.env`). Die muss zum Besitzer des Ordners `data/` passen, sonst kann die App nichts speichern. Auf der Synology ist das meist nicht 1000, sondern z. B. 1026/100 (README beschreibt, wie man es herausfindet). Ungetestet, weil noch nie auf dem NAS gelaufen.
+   - Das GitHub-Repo ist **privat**: Für `git clone` auf dem NAS braucht es ein Zugangs-Token (nur Lesen, nur dieses Repo) – oder die Dateien per Finder/SMB kopieren.
 2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
 3. **Nicht geprüft:**
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
