@@ -71,7 +71,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Druck-Fußzeile: Skyline überarbeitet (Funkturm geschwungen, Brandenburger Tor schmaler mit Quadriga, Fernsehturm mit kleinerer Kugel, Endpfeiler an der Oberbaumbrücke). Feiertagsnamen im Druck kleiner (4,6 pt), 25./26.12. heißen „Weihnachten“, Heiligabend und Silvester beschriftet (ohne Feiertagsfarbe, `specialDays`), Safari darf kleine Schrift nicht mehr selbst vergrößern (`text-size-adjust`) |
 | – | Einstellungen neu sortiert (Karten, Kacheln, Schalter, Vorschläge beim Tippen); vergangene Monate als Stapel unter dem laufenden Monat |
 | #26 | iPad-App: Kopfzeile um den Systemrand eingerückt (half auf dem iPad nicht) |
-| – | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt |
+| #27 | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt (auf dem iPad geprüft) |
 
 ## Offene Punkte
 
@@ -84,7 +84,6 @@ In etwa nach Wichtigkeit:
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - Neues Design, Hell/Dunkel-Umschalter und Monats-Animation nur in Chrome (auch Handybreite) geprüft, nicht in Safari und nicht auf dem echten iPhone. Das Home-Bildschirm-Icon aktualisiert iOS erst, wenn man die App vom Home-Bildschirm entfernt und neu hinzufügt.
-   - Kopf in der iPad-App: Ob 28 px Abstand reichen, ist noch nicht auf dem echten iPad bestätigt. Sonst `--ipad-top-gap` in `app.css` anpassen.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
