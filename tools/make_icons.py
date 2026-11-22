@@ -3,7 +3,7 @@
 Nur beim Entwickeln nötig (die PNGs liegen im Repo). Braucht Google Chrome.
 Aufruf:  .venv/bin/python tools/make_icons.py
 
-- apple-touch-icon.png (180 px): ohne Rundung, iOS rundet selbst ab
+- apple-touch-icon.png (180 px): ohne Rundung, iOS rundet selbst ab (Motiv wie im SVG)
 - icon-192.png / icon-512.png: wie das SVG (abgerundet, Ecken transparent)
 - icon-maskable-512.png: Hintergrund bis zum Rand, Motiv verkleinert, damit
   Android es beliebig zuschneiden kann
@@ -29,8 +29,8 @@ def variant(svg: str, *, full_bleed: bool, scale: float = 1.0) -> str:
         svg = svg.replace('<rect class="bg" width="512" height="512" rx="114"/>', '<rect class="bg" width="512" height="512"/>')
     if scale != 1.0:
         svg = svg.replace(
-            '<g transform="translate(-6 4)">',
-            f'<g transform="translate(256 256) scale({scale}) translate(-256 -256) translate(-6 4)">',
+            '<g id="art" transform="scale(5.12)">',
+            f'<g id="art" transform="translate(256 256) scale({scale}) translate(-256 -256) scale(5.12)">',
         )
     return svg
 
@@ -56,7 +56,7 @@ def render(svg: str, size: int, target: Path) -> None:
 def main() -> None:
     OUT.mkdir(exist_ok=True)
     svg = SRC.read_text(encoding="utf-8")
-    render(variant(svg, full_bleed=True, scale=0.9), 180, OUT / "apple-touch-icon.png")
+    render(variant(svg, full_bleed=True), 180, OUT / "apple-touch-icon.png")
     render(variant(svg, full_bleed=False), 192, OUT / "icon-192.png")
     render(variant(svg, full_bleed=False), 512, OUT / "icon-512.png")
     render(variant(svg, full_bleed=True, scale=0.78), 512, OUT / "icon-maskable-512.png")

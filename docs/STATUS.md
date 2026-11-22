@@ -25,9 +25,11 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Funktion | Wo im Code |
 |---|---|
 | Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
-| Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt. Im laufenden Jahr sind vergangene Monate eingeklappt („Januar – Oktober anzeigen“), nach jedem Laden wieder; Druck zeigt immer das ganze Jahr | `app/static/app.js` (`renderMonths`, `setEarlier`) |
+| Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt. Im laufenden Jahr sind vergangene Monate eingeklappt („Januar – Oktober anzeigen“), nach jedem Laden wieder; Ein-/Ausblenden ist animiert (übrige Monate gleiten mit, bei „Bewegung reduzieren“ ohne Animation); Druck zeigt immer das ganze Jahr | `app/static/app.js` (`renderMonths`, `setEarlier`) |
 | „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben mit Farbstreifen der Müllart am linken Rand; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
-| App-Icon (Tonne, Kalenderblatt, Fernsehturm), wechselt selbst zwischen hell und dunkel; dient auch als Favicon | `app/static/icon.svg` |
+| App-Icon (Tonne, Kalenderblatt, Fernsehturm): hell in BSR-Orange, dunkel in Nachtblau, jeweils mit feinem Verlauf. `icon.svg` (Favicon, Vorlage für die PNGs) folgt dem System; die Kopfzeile zeigt dieselbe Grafik inline, damit sie dem gewählten Design folgt – Änderungen an beiden Stellen machen | `app/static/icon.svg`, `index.html` (`.appicon`), PNGs per `tools/make_icons.py` |
+| Akzentfarbe BSR-Orange (`--accent` für Schrift, `--accent-strong` für Ringe/Rahmen): „Aktualisieren“, heutiger Tag als Ring, Rahmen um den laufenden Monat | `app/static/app.css` |
+| Design hell/dunkel/automatisch per Knopf in der Kopfzeile, pro Gerät gespeichert (`localStorage` „theme“). Ein kleines Skript im `<head>` setzt `data-theme` vor dem ersten Zeichnen; das dunkle Design gilt nur am Bildschirm (`@media screen`), der Ausdruck bleibt hell | `index.html`, `app.js` (`applyTheme`, `cycleTheme`), `app.css` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
 | Kopfzeile mit App-Icon und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
@@ -36,7 +38,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
 | Druckansicht als Jahresplaner auf **einer** A4-Seite quer: je Monat eine Spalte mit Platz zum Eintragen, Wochenenden schattiert, Berliner Feiertage, KW, Fußzeile mit Berliner Skyline | `app/static/app.js` (`renderPlanner`, `berlinHolidays`), `app.css` (`@media print`), Fußzeile in `index.html` |
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
-| PWA: Symbol auf dem Home-Bildschirm (Manifest, PNG-Icons), Service Worker zeigt ohne Server den letzten Stand mit blauem Hinweis „Stand vom …“ | `app/static/sw.js`, `manifest.webmanifest`, `icons/`, `app.js` (`loadState`), Icons per `tools/make_icons.py` |
+| PWA: Symbol auf dem Home-Bildschirm (Manifest, PNG-Icons), Service Worker zeigt ohne Server den letzten Stand mit orangem Hinweis „Stand vom …“ | `app/static/sw.js`, `manifest.webmanifest`, `icons/`, `app.js` (`loadState`), Icons per `tools/make_icons.py` |
 | Push-Erinnerung am Vorabend (Uhrzeit einstellbar, Standard 18 Uhr; pro Gerät ein-/ausschaltbar, „Test senden“). Schlüssel in `data/vapid.json`, Geräte in `data/push.json` | `app/push.py`, `app/main.py` (`/api/push/*`, `_push_loop`), `app.js` (`renderPush`, `togglePush`) |
 | Push-Hinweise (08–21 Uhr): Vorwarnung ca. 7 Tage vor einem verschobenen Termin (`moved_from`), „Termin geändert“ bei Abweichungen zwischen zwei Abrufen (nächste 14 Tage, nur BSR bei gleicher Adresse und Berlin Recycling), Meldung ab dem 2. Fehlschlag einer Quelle und „klappt wieder“. Nach einem Fehlschlag neuer Abruf nach 6 h. Abend-Erinnerung nennt Verschiebung. Fehlerbanner zeigt „(seit TT.MM.)“. Gemerkt in `push.json` (`failure_alerted`, `moved_announced`, `changes_sent`), Änderungen in `pickups.json` (`changes`) | `app/push.py` (`run_alerts`, `_collect_alerts`), `app/refresh.py` (`detect_changes`, `fail_count`/`failed_since`), `app/main.py` (`_refresh_due`) |
 | Docker-Setup für jeden Rechner mit Docker (im Einsatz auf einer Synology DS723+), Benutzernummer per `PUID`/`PGID`; README erklärt erst den allgemeinen Weg, dann die Synology als Beispiel | `Dockerfile`, `docker-compose.yml`, README |
@@ -63,6 +65,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | README und Repo-Beschreibung allgemeiner: Betrieb auf jedem Rechner mit Docker, Synology nur noch als Beispiel |
 | – | Liste „Danach“: Farbstreifen der Müllart am linken Kartenrand, Trennlinien zwischen den Zeilen |
 | – | Push-Hinweise bei verschobenen/geänderten Terminen und bei fehlschlagenden Abrufen |
+| – | Neues App-Icon (BSR-Orange/Nachtblau), Akzentfarbe Orange statt Blau, Umschalter hell/dunkel/automatisch, Animation beim Ein-/Ausblenden vergangener Monate. Druckansicht unverändert |
 
 ## Offene Punkte
 
@@ -74,6 +77,7 @@ In etwa nach Wichtigkeit:
    - Druckvorschau in Safari/Firefox am Mac (geprüft: Chrome mit Rand 0 bis 20 mm und Safari auf dem iPhone, Quer- und Hochformat: je 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
+   - Neues Design, Hell/Dunkel-Umschalter und Monats-Animation nur in Chrome (auch Handybreite) geprüft, nicht in Safari und nicht auf dem echten iPhone. Das Home-Bildschirm-Icon aktualisiert iOS erst, wenn man die App vom Home-Bildschirm entfernt und neu hinzufügt.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
