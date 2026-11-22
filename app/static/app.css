@@ -187,17 +187,72 @@ legend { font-weight: 600; margin-bottom: 8px; }
 .dlg-actions a { color: var(--accent); margin-right: auto; font-size: 14px; }
 #ics-url { flex: 1; font-size: 13px; }
 
+/* ---------- Druck: Jahresplaner auf einer A4-Seite quer (Kühlschrank, mit Platz zum Eintragen) ---------- */
 @media print {
-  @page { size: A4 landscape; margin: 10mm; }
-  :root { --bg: #fff; --surface: #fff; --muted-bg: #f1efe8; --text: #000; }
-  body { max-width: none; padding: 0; font-size: 11px; }
-  .no-print, .status, .banner, .address .edit, .tip { display: none !important; }
-  .print-only { display: inline; }
-  .address { color: #000; }
-  .months { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .month { padding: 6px; break-inside: avoid; }
-  .day { min-height: 22px; }
-  .day.today { outline: none; }
-  .day.past { opacity: 1; }
+  /* Rand 0 blendet die Kopf-/Fußzeilen des Browsers (Datum, URL) aus; den Rand macht der body. */
+  @page { size: A4 landscape; margin: 0; }
+  :root {
+    --bg: #fff; --surface: #fff; --text: #1a1a18; --text-2: #55544f; --text-3: #8f8d86;
+    --line: #dcd9cf; --we: #f4f2ec; --hol: #efe9dc; --danger: #a32d2d;
+    --c-HM: #5f5e5a; --c-BI: #8a5a2b;
+  }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    max-width: none; width: 297mm; height: 209mm; margin: 0; padding: 9mm 10mm 5mm;
+    overflow: hidden; background: #fff; color: var(--text); font-size: 8pt;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto minmax(0, 1fr) auto;
+    column-gap: 8mm;
+  }
+  .no-print, .status, .banner, .address .edit, .tip, .months { display: none !important; }
+  .print-only { display: inline; }
+
+  .top { grid-column: 1; grid-row: 1; display: block; }
+  h1 { font-size: 20pt; font-weight: 700; letter-spacing: -0.01em; line-height: 1.05; }
+  .address { color: var(--text-2); font-size: 9pt; padding: 0; margin-top: 1.2mm; min-height: 0; }
+  .address .ic { width: 3.6mm; height: 3.6mm; }
+
+  .legend { grid-column: 2; grid-row: 1; align-self: end; margin: 0 0 1mm; gap: 1.5mm 4.5mm; font-size: 8pt; color: var(--text-2); }
+  .legend .sw { width: 2.6mm; height: 2.6mm; margin-right: 1.2mm; }
+
+  /* Planer: 12 Spalten, je Monat 31 Zeilen mit Platz zum Eintragen */
+  .planner {
+    grid-column: 1 / -1; grid-row: 2; min-height: 0; margin-top: 4mm;
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 1.6mm;
+  }
+  .pl-month { min-width: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto repeat(31, minmax(0, 1fr)); min-height: 0; }
+  .pl-month h3 {
+    margin: 0 0 0.8mm; padding-bottom: 0.8mm; border-bottom: 0.5mm solid var(--text);
+    font-size: 8.5pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .pl-row {
+    position: relative; display: flex; align-items: center; gap: 0.8mm; min-height: 0;
+    padding: 0 0.8mm; border-bottom: 0.2mm solid var(--line); line-height: 1;
+  }
+  .pl-row.pl-none { border-bottom: 0; }
+  .pl-row.pl-we { background: var(--we); }
+  .pl-row.pl-hol { background: var(--hol); }
+  .pl-d { flex: none; width: 3.6mm; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pl-wd { flex: none; width: 3.4mm; font-size: 6.5pt; color: var(--text-3); }
+  .pl-we .pl-wd, .pl-hol .pl-wd { color: var(--text-2); }
+  .pl-dots { flex: none; display: flex; gap: 0.5mm; }
+  .pl-dots .dot { width: 2.2mm; height: 2.2mm; }
+  .pl-dots .dot.moved { outline-width: 0.3mm; outline-offset: 0.2mm; }
+  .pl-note { flex: 1; min-width: 0; max-height: 100%; overflow: hidden; font-size: 5.2pt; line-height: 1.05; color: var(--text-2); }
+  .pl-mo .pl-note { padding-right: 2mm; }
+  .pl-note { hyphens: manual; }
+  .pl-kw { position: absolute; right: 0.4mm; top: 0.3mm; font-size: 4.5pt; color: var(--text-3); }
+
+  /* Fußzeile in einer Zeile: Spruch – Skyline – Stand */
+  .print-foot { display: flex; align-items: flex-end; gap: 6mm; grid-column: 1 / -1; grid-row: 3; margin-top: 2.5mm; }
+  .skyline { display: block; flex: 1; min-width: 0; height: 11mm; }
+  .skyline .sky { fill: #d6d2c6; }
+  .skyline .ubahn { fill: #f0c419; }
+  .skyline .ubahn-win, .skyline .truck-win { fill: #fff; }
+  .skyline .truck { fill: #f07d00; }
+  .skyline .wheels { fill: #3a3936; }
+  .foot-text { display: contents; font-size: 7pt; color: var(--text-3); }
+  .foot-text > span { flex: none; width: 62mm; white-space: nowrap; }
+  .foot-text > span:last-child { order: 3; text-align: right; }
+  .foot-text .motto { order: -1; }
+  .foot-text .motto { font-style: italic; font-size: 8pt; color: var(--text-2); }
 }
