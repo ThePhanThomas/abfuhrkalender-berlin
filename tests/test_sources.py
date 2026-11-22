@@ -62,6 +62,31 @@ def test_berlin_recycling_bad_login():
             berlin_recycling.fetch_pickups(c, "user", "falsch")
 
 
+def test_berlin_recycling_needs_start_page_before_data(client, monkeypatch):
+    """Regression: without opening Default.aspx the portal refuses the data."""
+    real_get = client.get
+
+    def get_without_start_page(url, *a, **k):
+        if str(url).endswith("Default.aspx"):
+            return httpx.Response(200, request=httpx.Request("GET", url))
+        return real_get(url, *a, **k)
+
+    monkeypatch.setattr(client, "get", get_without_start_page)
+    with pytest.raises(SourceError, match="Session invalid"):
+        berlin_recycling.fetch_pickups(client, "user", "pw")
+
+
+def test_berlin_recycling_start_page_redirect_means_login_failed(client):
+    def handler(request):
+        if request.url.path == "/Default.aspx":
+            return httpx.Response(302, headers={"Location": "/Login.aspx"})
+        return br_handler(request)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+        with pytest.raises(SourceError, match="Login"):
+            berlin_recycling.fetch_pickups(c, "user", "pw")
+
+
 def test_berlin_recycling_missing_credentials(client):
     with pytest.raises(SourceError, match="Zugangsdaten"):
         berlin_recycling.fetch_pickups(client, "", "")
