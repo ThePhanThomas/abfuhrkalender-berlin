@@ -27,10 +27,11 @@ BSR_EVENTS = {
 
 ADDRESS_RESULTS = [{"value": ADDR_KEY, "label": "Musterstr. 1A, 10115 Berlin (Mitte)"}]
 
+# Field names as returned by the real portal ("Description" = container size).
 BR_ROWS = [
-    {"Task Date": "2026-01-09", "Material Description": "Papier, Pappe, Kartonagen 240 l"},
-    {"Task Date": "2026-02-06", "Material Description": "Papier, Pappe, Kartonagen 240 l"},
-    {"Task Date": "2026-02-10", "Material Description": "Glas weiß"},
+    {"Task Date": "2026-01-09", "Description": "240 L MGB Leerung", "Material Description": "Papier, Pappe, Kartonagen"},
+    {"Task Date": "2026-02-06", "Description": "240 L MGB Leerung", "Material Description": "Papier, Pappe, Kartonagen"},
+    {"Task Date": "2026-02-10", "Description": "240 L MGB Leerung", "Material Description": "Glas weiß"},
 ]
 
 
@@ -48,16 +49,32 @@ def bsr_handler(request: httpx.Request) -> httpx.Response:
 
 
 def br_handler(request: httpx.Request, login_ok: bool = True) -> httpx.Response:
+    """Mimics the real portal, which tracks progress in a session cookie:
+    after login, Default.aspx must be opened once before data requests work
+    (otherwise they return {"Error": ..., "Message": ...})."""
     path = request.url.path
+    session = request.headers.get("cookie", "")
     if path == "/":
         return httpx.Response(302, headers={"Location": "/Login.aspx"})
     if path.endswith("/Login.aspx/Auth"):
-        inner = {"Error": False} if login_ok else {"Error": True, "Message": "Access denied"}
-        return httpx.Response(200, json={"d": json.dumps(inner)})
+        if not login_ok:
+            inner = {"Error": True, "Message": "Incorrect login data - Access denied"}
+            return httpx.Response(200, json={"d": json.dumps(inner)})
+        return httpx.Response(
+            200,
+            json={"d": json.dumps({"Error": False, "Message": "Default.aspx"})},
+            headers={"Set-Cookie": "sid=auth; Path=/"},
+        )
+    if path == "/Default.aspx":
+        if "sid=" not in session:
+            return httpx.Response(302, headers={"Location": "/Login.aspx"})
+        return httpx.Response(200, text="<html></html>", headers={"Set-Cookie": "sid=ready; Path=/"})
     if path.endswith("/GetDashboard"):
         return httpx.Response(200, json={"d": "{}"})
     if path.endswith("/GetDatasetTableHead"):
-        return httpx.Response(200, json={"d": json.dumps({"Object": {"data": BR_ROWS}})})
+        if "sid=ready" not in session:
+            return httpx.Response(200, json={"d": json.dumps({"Error": True, "Message": "Session invalid"})})
+        return httpx.Response(200, json={"d": json.dumps({"Object": {"recordsTotal": len(BR_ROWS), "data": BR_ROWS}})})
     return httpx.Response(404)
 
 

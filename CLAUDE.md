@@ -27,7 +27,7 @@ Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als J
 ```bash
 uv venv --python 3.12 .venv
 uv pip install --python .venv -r requirements-dev.txt
-.venv/bin/uvicorn app.main:app --reload --port 8080   # http://localhost:8080
+.venv/bin/uvicorn app.main:app --reload --port 8080 --env-file .env   # http://localhost:8080
 .venv/bin/python -m pytest -q                         # Tests
 ```
 
@@ -45,7 +45,7 @@ Vor jedem Commit die Tests laufen lassen. Bei Änderungen an der Oberfläche die
 
 - **BSR Adresssuche:** `GET https://umnewforms.bsr.de/p/de.bsr.adressen.app/plzSet/plzSet?searchQuery=<Straße>:::<Hausnr>` – Schreibweise ist tolerant. Ungültige Anfragen liefern eine HTML-Fehlerseite statt JSON.
 - **BSR Termine:** `GET …/abfuhrEvents?filter=AddrKey eq '<key>' and DateFrom eq datetime'YYYY-MM-DDT00:00:00' and DateTo eq datetime'…'` – liefert Hausmüll, Bio, Wertstoffe (auch ALBA), Laub, Weihnachtsbäume inkl. Verschiebungen. Anfragen mit `Origin`-Header werden abgelehnt, deshalb nur serverseitig.
-- **Berlin Recycling Kundenportal:** Login über `POST /Login.aspx/Auth`, dann `GetDashboard` und `GetDatasetTableHead` mit `datasettablecode: ABFUHRKALENDER`. Antworten sind doppelt JSON-kodiert (`{"d": "<json>"}`).
+- **Berlin Recycling Kundenportal:** Login über `POST /Login.aspx/Auth`, dann `GetDashboard` und `GetDatasetTableHead` mit `datasettablecode: ABFUHRKALENDER`. Antworten sind doppelt JSON-kodiert (`{"d": "<json>"}`). Nach dem Login muss `Default.aspx` einmal per GET aufgerufen werden, sonst liefern die Datenabfragen `{"Error": …}`. Das Portal gibt nur kommende Termine zurück (Felder `Task Date`, `Material Description`); vergangene werden in `app/refresh.py` aus früheren Abrufen aufbewahrt (`keep_past`).
 
 Wenn eine Schnittstelle nicht mehr funktioniert: erst mit `curl` prüfen, was sie jetzt liefert, dann Modul und Tests anpassen und diesen Abschnitt aktualisieren.
 

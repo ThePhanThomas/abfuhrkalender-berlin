@@ -56,8 +56,15 @@ def fetch_pickups(client: httpx.Client, username: str, password: str) -> list[Pi
         if isinstance(login, dict) and login.get("Error"):
             raise SourceError("Login bei Berlin Recycling fehlgeschlagen (Zugangsdaten prüfen).")
 
-        headers = {"Content-Type": "application/json"}
         service = f"{PORTAL}Default.aspx"
+        # Opening the start page once is required: without it the portal
+        # answers the data requests with an error instead of the table.
+        r = client.get(service, follow_redirects=False, timeout=TIMEOUT)
+        if r.is_redirect:
+            raise SourceError("Login bei Berlin Recycling fehlgeschlagen (Zugangsdaten prüfen).")
+        r.raise_for_status()
+
+        headers = {"Content-Type": "application/json"}
         client.post(f"{service}/GetDashboard", headers=headers, timeout=TIMEOUT).raise_for_status()
         r = client.post(
             f"{service}/GetDatasetTableHead",
@@ -79,6 +86,9 @@ def fetch_pickups(client: httpx.Client, username: str, password: str) -> list[Pi
         raise SourceError(f"Berlin Recycling nicht erreichbar: {e}") from e
 
     data = _decode(r)
+    if isinstance(data, dict) and data.get("Error"):
+        msg = data.get("Message") or "unbekannter Fehler"
+        raise SourceError(f"Kundenportal Berlin Recycling meldet einen Fehler: {msg}")
     rows = (data.get("Object") or {}).get("data") if isinstance(data, dict) else None
     if rows is None:
         raise SourceError("Keine Abfuhrdaten im Kundenportal gefunden.")
