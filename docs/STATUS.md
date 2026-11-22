@@ -38,7 +38,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
 | PWA: Symbol auf dem Home-Bildschirm (Manifest, PNG-Icons), Service Worker zeigt ohne Server den letzten Stand mit blauem Hinweis „Stand vom …“ | `app/static/sw.js`, `manifest.webmanifest`, `icons/`, `app.js` (`loadState`), Icons per `tools/make_icons.py` |
 | Push-Erinnerung am Vorabend (Uhrzeit einstellbar, Standard 18 Uhr; pro Gerät ein-/ausschaltbar, „Test senden“). Schlüssel in `data/vapid.json`, Geräte in `data/push.json` | `app/push.py`, `app/main.py` (`/api/push/*`, `_push_loop`), `app.js` (`renderPush`, `togglePush`) |
-| Docker-Setup für Synology (läuft auf DS723+), Benutzernummer per `PUID`/`PGID` | `Dockerfile`, `docker-compose.yml`, README |
+| Docker-Setup für jeden Rechner mit Docker (im Einsatz auf einer Synology DS723+), Benutzernummer per `PUID`/`PGID`; README erklärt erst den allgemeinen Weg, dann die Synology als Beispiel | `Dockerfile`, `docker-compose.yml`, README |
 | Tests (44, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
@@ -59,6 +59,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | PWA: Home-Bildschirm-Symbol, Anzeige ohne Server, Push-Erinnerung am Vorabend; HTTPS über Tailscale (Anleitung im README). Neue Abhängigkeiten `pywebpush`, `tzdata` |
 | – | Vergangene Monate des laufenden Jahres eingeklappt, per Zeile einblendbar |
 | – | Drucken in der iPhone-App: Hinweis-Dialog mit „In Safari öffnen“, Safari druckt dann von selbst (`?print=<Jahr>`) |
+| – | README und Repo-Beschreibung allgemeiner: Betrieb auf jedem Rechner mit Docker, Synology nur noch als Beispiel |
 
 ## Offene Punkte
 
@@ -71,6 +72,7 @@ In etwa nach Wichtigkeit:
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
+   - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
    - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
