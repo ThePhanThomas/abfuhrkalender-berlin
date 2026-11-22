@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abfuhrkalender</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23378ADD' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3'/></svg>">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Abfuhrkalender</h1>
+      <button class="link" id="address" type="button">Adresse einrichten</button>
+    </div>
+    <div class="actions no-print">
+      <select id="year" aria-label="Jahr"></select>
+      <button type="button" id="btn-print">Drucken</button>
+      <button type="button" id="btn-subscribe">Abonnieren</button>
+      <button type="button" id="btn-settings">Einstellungen</button>
+      <button type="button" id="btn-refresh" class="primary">Daten aktualisieren</button>
+    </div>
+  </header>
+  <p class="status" id="status"></p>
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="no-print" aria-labelledby="next-h">
+    <h2 id="next-h" class="label">Nächste Abholungen</h2>
+    <div class="next" id="next"></div>
+  </section>
+
+  <div class="legend" id="legend"></div>
+  <main class="months" id="months"></main>
+
+  <dialog id="dlg-settings">
+    <form method="dialog" id="settings-form">
+      <h2>Einstellungen</h2>
+      <p class="hint" id="welcome" hidden>Gib deine Berliner Adresse ein. Die Termine kommen direkt von der BSR.</p>
+
+      <fieldset>
+        <legend>Adresse</legend>
+        <div class="row">
+          <label>Straße<input id="street" autocomplete="address-line1" placeholder="Musterstraße"></label>
+          <label class="short">Nr.<input id="number" placeholder="12A"></label>
+          <button type="button" id="btn-search">Suchen</button>
+        </div>
+        <p class="hint" id="addr-current"></p>
+        <div id="addr-results" class="results"></div>
+        <p class="error" id="addr-error"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Angezeigte Müllarten</legend>
+        <div id="cats" class="cats"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Papier (Berlin Recycling)</legend>
+        <label class="radio"><input type="radio" name="paper" value="portal"> Aus dem Kundenportal abrufen</label>
+        <p class="hint" id="portal-hint"></p>
+        <label class="radio"><input type="radio" name="paper" value="manual"> Rhythmus selbst angeben</label>
+        <div class="row indent" id="manual-row">
+          <label>Eine bekannte Abholung<input type="date" id="first-date"></label>
+          <label class="short">alle … Wochen<input type="number" id="interval" min="1" max="12" value="4"></label>
+        </div>
+        <label class="radio"><input type="radio" name="paper" value="off"> Kein Papier anzeigen</label>
+      </fieldset>
+
+      <p class="error" id="settings-error"></p>
+      <div class="dlg-actions">
+        <button type="button" id="btn-cancel">Abbrechen</button>
+        <button type="submit" class="primary" id="btn-save">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-subscribe">
+    <form method="dialog">
+      <h2>Kalender abonnieren</h2>
+      <p class="hint">Diese Adresse im Handy- oder Computerkalender als Abo hinzufügen. Der Kalender aktualisiert sich dann von selbst.</p>
+      <label class="radio"><input type="checkbox" id="ics-reminder"> Erinnerung am Vorabend um 18 Uhr</label>
+      <div class="row"><input id="ics-url" readonly><button type="button" id="btn-copy">Kopieren</button></div>
+      <div class="dlg-actions">
+        <a id="ics-download" href="/api/calendar.ics" download>Als Datei laden</a>
+        <button class="primary">Schließen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
