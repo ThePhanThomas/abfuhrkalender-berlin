@@ -521,6 +521,14 @@ function updateIcs() {
 }
 
 // ---------- actions ----------
+// iOS ignoriert window.print() in Apps vom Home-Bildschirm. Dort an Safari weiterreichen
+// (Schema x-safari-https:, ab iOS 17), Safari druckt dann beim Laden (siehe init).
+function printPlanner() {
+  if (!(isIOS && isStandalone())) { window.print(); return; }
+  const url = new URL(`/?print=${selectedYear}`, location.href);
+  $("print-safari").href = `x-safari-${url.href}`;
+  $("dlg-print").showModal();
+}
 async function refresh() {
   if (!state.config.address) { openSettings(); return; }
   const btn = $("btn-refresh");
@@ -548,7 +556,7 @@ async function init() {
   $("btn-refresh").addEventListener("click", refresh);
   $("btn-settings").addEventListener("click", openSettings);
   $("address").addEventListener("click", openSettings);
-  $("btn-print").addEventListener("click", () => window.print());
+  $("btn-print").addEventListener("click", printPlanner);
   $("btn-subscribe").addEventListener("click", () => { updateIcs(); $("dlg-subscribe").showModal(); });
   $("ics-reminder").addEventListener("change", updateIcs);
   $("btn-copy").addEventListener("click", async () => {
@@ -596,7 +604,14 @@ async function init() {
     $("banner").textContent = e.message;
     return;
   }
+  // Aus der iPhone-App nach Safari weitergereicht (?print=<Jahr>): Jahr wählen und gleich drucken.
+  const printYear = Number(new URLSearchParams(location.search).get("print"));
+  if (printYear) {
+    selectedYear = printYear;
+    history.replaceState(null, "", location.pathname);
+  }
   render();
+  if (printYear) { setTimeout(() => window.print(), 300); return; }
   if (!state.config.address && offlineSince === null) openSettings();
 }
 

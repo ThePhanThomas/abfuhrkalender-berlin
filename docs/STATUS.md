@@ -58,6 +58,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Glas und Sonstiges aus den Einstellungen entfernt (keine Quelle liefert dafür Termine); „Rhythmus“ heißt jetzt „Turnus“ |
 | – | PWA: Home-Bildschirm-Symbol, Anzeige ohne Server, Push-Erinnerung am Vorabend; HTTPS über Tailscale (Anleitung im README). Neue Abhängigkeiten `pywebpush`, `tzdata` |
 | – | Vergangene Monate des laufenden Jahres eingeklappt, per Zeile einblendbar |
+| – | Drucken in der iPhone-App: Hinweis-Dialog mit „In Safari öffnen“, Safari druckt dann von selbst (`?print=<Jahr>`) |
 
 ## Offene Punkte
 
@@ -72,6 +73,7 @@ In etwa nach Wichtigkeit:
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
+   - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
@@ -117,4 +119,5 @@ In etwa nach Wichtigkeit:
 - **Service Worker und Push brauchen HTTPS** (Ausnahme: `localhost`). Über `http://<NAS-IP>:8080` meldet sich kein Service Worker an, die App läuft dann wie vorher. Auf dem iPhone geht Push außerdem nur, wenn die App vom Home-Bildschirm geöffnet wird, nicht in Safari.
 - **Offline testen:** Seite einmal laden (Service Worker speichert Seite und `/api/state`), Server stoppen, neu laden → blauer Hinweis mit Stand. Der Service Worker holt immer zuerst frisch vom Server (5 s Wartezeit), deshalb muss die Cache-Version (`CACHE` in `sw.js`) bei Updates nicht erhöht werden.
 - **`data/vapid.json` nicht löschen:** Das ist der Push-Schlüssel des Servers. Ein neuer Schlüssel macht alle Anmeldungen ungültig; jedes Gerät muss Push dann neu einschalten.
+- **Drucken in der iPhone-App geht nicht:** iOS ignoriert `window.print()` in Apps vom Home-Bildschirm stillschweigend. Deshalb zeigt der Drucken-Button dort einen Dialog, der die Seite per `x-safari-https://…/?print=<Jahr>` in Safari öffnet; Safari wählt das Jahr, entfernt den Parameter aus der Adresse und öffnet den Druckdialog (`printPlanner`, Ende von `init` in `app.js`).
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.
