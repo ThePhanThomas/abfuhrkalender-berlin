@@ -32,7 +32,8 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | Papier: Kundenportal **oder** selbst angegebener Rhythmus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
-| Druckansicht: ganzes Jahr auf **einer** A4-Seite hochkant (Kühlschrank), Fußzeile mit Berliner Skyline; helles/dunkles Design, Handy-Layout | `app/static/app.css` (`@media print`), Fußzeile in `index.html` |
+| Druckansicht als Jahresplaner auf **einer** A4-Seite quer: je Monat eine Spalte mit Platz zum Eintragen, Wochenenden schattiert, Berliner Feiertage, KW, Fußzeile mit Berliner Skyline | `app/static/app.js` (`renderPlanner`, `berlinHolidays`), `app.css` (`@media print`), Fußzeile in `index.html` |
+| Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
 | Docker-Setup für Synology | `Dockerfile`, `docker-compose.yml` |
 | Tests (29, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
@@ -44,7 +45,7 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | #1 | Abruf bei Berlin Recycling repariert (fehlender Zwischenschritt beim Login), vergangene Papiertermine behalten, lokaler Server liest `.env` |
 | #2 | Kopfzeile neu gestaltet; `Cache-Control: no-cache`, damit Browser nach Updates keine alten CSS/JS-Dateien verwenden |
 | #3 | Info-Kasten für Abholtage |
-| #5 | Druckansicht auf eine A4-Seite hochkant gebracht, Berliner Skyline als Fußzeile |
+| #5 | Druckansicht als Jahresplaner auf einer A4-Seite quer (zum Eintragen), Berliner Feiertage, Skyline als Fußzeile |
 
 ## Offene Punkte
 
@@ -53,6 +54,7 @@ In etwa nach Wichtigkeit:
 1. **Einsatz auf der Synology.** Anleitung steht im README. Der **Docker-Build ist noch nie gelaufen** (auf dem Entwicklungs-Mac ist kein Docker installiert). Beim ersten Build auf dem NAS auf Fehler achten.
 2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
 3. **Nicht geprüft:**
+   - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
    - Druckvorschau in Safari/Firefox (geprüft nur Chrome: genau 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
