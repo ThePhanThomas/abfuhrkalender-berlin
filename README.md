@@ -18,7 +18,7 @@ Voraussetzung: [uv](https://docs.astral.sh/uv/) oder Python 3.12.
 uv venv --python 3.12 .venv
 uv pip install --python .venv -r requirements-dev.txt
 cp .env.example .env   # optional: Zugangsdaten Berlin Recycling eintragen
-.venv/bin/uvicorn app.main:app --reload --port 8080
+.venv/bin/uvicorn app.main:app --reload --port 8080 --env-file .env
 ```
 
 Dann <http://localhost:8080> öffnen. Beim ersten Start fragt die App nach der Adresse.
@@ -59,7 +59,7 @@ Die Termine und Einstellungen liegen im Unterordner `data/` und überleben Updat
 | Quelle | Endpunkt | Hinweise |
 |---|---|---|
 | BSR | `umnewforms.bsr.de/p/de.bsr.adressen.app/…` | Öffentlich, aber undokumentiert. Blockt Aufrufe direkt aus dem Browser (CORS/403) – deshalb läuft der Abruf über den Server. |
-| Berlin Recycling | `kundenportal.berlin-recycling.de` | Login nötig. Der öffentliche Mieter-Kalender ist per reCAPTCHA geschützt und wird bewusst **nicht** automatisiert. |
+| Berlin Recycling | `kundenportal.berlin-recycling.de` | Login nötig. Liefert nur die nächsten ~10 Termine; bereits abgerufene vergangene Termine bewahrt die App auf. Der öffentliche Mieter-Kalender ist per reCAPTCHA geschützt und wird bewusst **nicht** automatisiert. |
 
 Beide Schnittstellen können sich ohne Ankündigung ändern. Schlägt ein Abruf fehl, bleiben die zuletzt geladenen Termine erhalten und die App zeigt einen Hinweis.
 

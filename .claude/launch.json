@@ -4,7 +4,7 @@
     {
       "name": "abfuhrkalender",
       "runtimeExecutable": ".venv/bin/uvicorn",
-      "runtimeArgs": ["app.main:app", "--reload", "--port", "8080"],
+      "runtimeArgs": ["app.main:app", "--reload", "--port", "8080", "--env-file", ".env"],
       "port": 8080
     }
   ]
