@@ -9,6 +9,7 @@
   --border-strong: rgba(0, 0, 0, 0.2);
   --accent: #185fa5;
   --accent-bg: #e6f1fb;
+  --on-accent: #ffffff;
   --danger: #a32d2d;
   --danger-bg: #fcebeb;
   --radius: 8px;
@@ -36,6 +37,7 @@
     --border-strong: rgba(255, 255, 255, 0.25);
     --accent: #85b7eb;
     --accent-bg: #0c447c;
+    --on-accent: #042c53;
     --danger: #f09595;
     --danger-bg: #501313;
     --c-HM: #b4b2a9;
@@ -69,11 +71,48 @@ button { cursor: pointer; }
 button:hover { background: var(--muted-bg); }
 button:disabled { opacity: 0.6; cursor: progress; }
 button.primary { border-color: var(--accent); color: var(--accent); }
-button.link { border: 0; background: none; padding: 0; min-height: 0; color: var(--text-2); text-decoration: underline dotted; }
 input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.print-only { display: none; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.title { min-width: 0; }
+.address {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+  border: 0; background: none; padding: 2px 6px 2px 0; min-height: 0;
+  color: var(--text-2); font-size: 14px; text-align: left;
+}
+.address:hover { background: none; color: var(--text); }
+.address .edit { width: 15px; height: 15px; opacity: 0; transition: opacity 0.15s; }
+.address:hover .edit, .address:focus-visible .edit { opacity: 1; }
+
+.actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.actions button { display: inline-flex; align-items: center; gap: 6px; }
+
+.year {
+  display: inline-flex; align-items: center; height: 38px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 3px;
+}
+.year span { min-width: 48px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.year button.icon { border: 0; border-radius: 50%; width: 30px; height: 30px; min-height: 0; padding: 0; justify-content: center; background: none; color: var(--text-2); }
+.year button.icon:hover:not(:disabled) { background: var(--muted-bg); color: var(--text); }
+.year button.icon:disabled { opacity: 0.3; cursor: default; }
+
+.toolbar { display: inline-flex; gap: 2px; }
+button.ghost { border-color: transparent; background: none; color: var(--text-2); padding: 6px 10px; }
+button.ghost:hover { background: var(--muted-bg); color: var(--text); }
+
+#btn-refresh { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; padding: 6px 14px; }
+#btn-refresh:hover { filter: brightness(1.08); background: var(--accent); }
+#btn-refresh.busy .ic { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+  .actions { width: 100%; justify-content: space-between; gap: 8px; }
+  .toolbar { order: 3; width: 100%; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+  button.ghost { flex: 1; justify-content: center; padding: 6px 4px; font-size: 14px; }
+}
 .status { font-size: 12px; color: var(--text-3); margin: 8px 0 16px; }
 .status .bad { color: var(--danger); }
 .banner { background: var(--danger-bg); color: var(--danger); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
@@ -132,7 +171,9 @@ legend { font-weight: 600; margin-bottom: 8px; }
   @page { size: A4 landscape; margin: 10mm; }
   :root { --bg: #fff; --surface: #fff; --muted-bg: #f1efe8; --text: #000; }
   body { max-width: none; padding: 0; font-size: 11px; }
-  .no-print, .status, .banner { display: none !important; }
+  .no-print, .status, .banner, .address .edit { display: none !important; }
+  .print-only { display: inline; }
+  .address { color: #000; }
   .months { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .month { padding: 6px; break-inside: avoid; }
   .day { min-height: 22px; }
