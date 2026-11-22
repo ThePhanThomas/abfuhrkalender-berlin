@@ -148,6 +148,8 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .status { font-size: 12px; color: var(--text-3); margin: 22px 0 0; text-align: center; }
 .status .bad { color: var(--danger); }
 .banner { background: var(--danger-bg); color: var(--danger); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
+/* Ohne Serververbindung: kein Fehler, nur ein Hinweis */
+.banner.offline { background: var(--accent-bg); color: var(--accent); }
 
 /* Symbol-Kachel je Müllart */
 .tile {
@@ -279,7 +281,7 @@ legend { font-weight: 600; margin-bottom: 8px; }
 #ics-url { flex: 1; min-width: 0; font-size: 13px; }
 .row input { min-width: 0; max-width: 100%; }
 /* iOS stellt Datumsfelder sonst breiter dar, als die Spalte erlaubt */
-.row input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 36px; }
+.row input[type="date"], .row input[type="time"] { -webkit-appearance: none; appearance: none; min-height: 36px; }
 
 @media (max-width: 560px) {
   dialog { width: calc(100vw - 24px); max-width: none; padding: 16px; }

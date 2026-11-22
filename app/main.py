@@ -16,13 +16,14 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from app import ics, refresh, store
+from app import ics, push, refresh, store
 from app.models import CATEGORIES, SourceError
 from app.sources import bsr
 
 log = logging.getLogger("abfuhrkalender")
 STATIC = Path(__file__).parent / "static"
 REFRESH_HOURS = float(os.environ.get("REFRESH_INTERVAL_HOURS", "168"))
+PUSH_ENABLED = os.environ.get("PUSH_ENABLED", "1") != "0"
 
 
 async def _auto_refresh_loop() -> None:
@@ -44,11 +45,25 @@ async def _auto_refresh_loop() -> None:
         await asyncio.sleep(3600)
 
 
+async def _push_loop() -> None:
+    """Check once a minute whether the evening reminder is due."""
+    while True:
+        try:
+            await asyncio.to_thread(push.run_due)
+        except Exception:  # never let the loop die
+            log.exception("Erinnerung fehlgeschlagen")
+        await asyncio.sleep(60)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_: FastAPI):
-    task = asyncio.create_task(_auto_refresh_loop()) if REFRESH_HOURS > 0 else None
+    tasks = []
+    if REFRESH_HOURS > 0:
+        tasks.append(asyncio.create_task(_auto_refresh_loop()))
+    if PUSH_ENABLED:
+        tasks.append(asyncio.create_task(_push_loop()))
     yield
-    if task:
+    for task in tasks:
         task.cancel()
 
 
@@ -81,6 +96,21 @@ class Config(BaseModel):
     address: Optional[Address] = None
     categories: list[str]
     paper: Paper
+    notify_time: str = Field("18:00", pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
+
+
+class PushKeys(BaseModel):
+    p256dh: str = Field(min_length=10, max_length=200)
+    auth: str = Field(min_length=10, max_length=100)
+
+
+class PushSubscription(BaseModel):
+    endpoint: str = Field(pattern=r"^https://", max_length=1000)
+    keys: PushKeys
+
+
+class PushEndpoint(BaseModel):
+    endpoint: str
 
 
 def _state() -> dict:
@@ -101,6 +131,12 @@ def _state() -> dict:
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html")
+
+
+@app.get("/sw.js")
+def service_worker():
+    # Served from the root so that it controls the whole app (scope "/").
+    return FileResponse(STATIC / "sw.js", media_type="text/javascript")
 
 
 @app.get("/api/state")
@@ -153,6 +189,35 @@ def calendar_ics(reminder: bool = False, categories: Optional[str] = None):
         media_type="text/calendar; charset=utf-8",
         headers={"Content-Disposition": 'inline; filename="abfuhrkalender.ics"'},
     )
+
+
+@app.get("/api/push/key")
+def push_key():
+    return {"public_key": push.public_key()}
+
+
+@app.post("/api/push/subscribe")
+def push_subscribe(sub: PushSubscription):
+    push.add_subscription(sub.model_dump())
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+def push_unsubscribe(body: PushEndpoint):
+    push.remove_subscription(body.endpoint)
+    return {"ok": True}
+
+
+@app.post("/api/push/test")
+def push_test(body: PushEndpoint):
+    sub = next((s for s in push.subscriptions() if s["endpoint"] == body.endpoint), None)
+    if not sub:
+        raise HTTPException(404, "Dieses Gerät ist nicht für Erinnerungen angemeldet.")
+    try:
+        push.send(sub, {"title": "Abfuhrkalender", "body": "Erinnerungen funktionieren auf diesem Gerät.", "tag": "test"})
+    except push.PushError as e:
+        raise HTTPException(502, str(e)) from e
+    return {"ok": True}
 
 
 @app.get("/healthz")

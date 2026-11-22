@@ -7,6 +7,7 @@ Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse –
 - Button „Daten aktualisieren“, zusätzlich automatischer Abruf (Standard: wöchentlich).
 - Kalender-Abo (`.ics`) fürs Handy, optional mit Erinnerung am Vorabend.
 - Druckansicht A4 quer.
+- Als App aufs iPhone (Home-Bildschirm), mit Push-Erinnerung am Vorabend; zeigt ohne Serververbindung den zuletzt geladenen Stand.
 
 Die Adresse wird in der App eingerichtet und nur lokal in `data/config.json` gespeichert – im Code steht keine Adresse.
 
@@ -93,6 +94,34 @@ Danach ist die App unter `http://<NAS-IP>:8080` erreichbar. Die Termine und Eins
   sudo docker exec abfuhrkalender python -c "import os; p=os.environ.get('BR_PASSWORD',''); print('Länge Passwort:', len(p))"
   ```
 
+## Als App aufs iPhone (mit Push-Erinnerung)
+
+Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server erlaubt, muss sie über **HTTPS** mit einem gültigen Zertifikat laufen. Über `http://<NAS-IP>:8080` geht das nicht (die App funktioniert dort weiter, nur ohne diese Extras). Wir nutzen dafür **Tailscale**: Es gibt dem NAS eine feste HTTPS-Adresse (`https://<nas-name>.<tailnet>.ts.net`) mit Zertifikat, ohne dass am Router etwas freigegeben werden muss.
+
+### Einmalig auf der Synology
+
+1. **Paket-Zentrum:** **Tailscale** installieren, öffnen und mit einem (kostenlosen) Tailscale-Konto anmelden.
+2. In der Tailscale-Verwaltung im Browser (<https://login.tailscale.com/admin/dns>): **MagicDNS** einschalten und darunter **HTTPS Certificates** aktivieren.
+3. Per SSH auf dem NAS die App über HTTPS freigeben (leitet auf Port 8080 weiter, bleibt nach einem Neustart erhalten):
+   ```bash
+   sudo /var/packages/Tailscale/target/bin/tailscale serve --bg 8080
+   ```
+   Die Ausgabe zeigt die Adresse `https://<nas-name>.<tailnet>.ts.net`. Das erste Öffnen kann ein paar Sekunden dauern, weil dann das Zertifikat geholt wird. Abschalten mit `… tailscale serve --https=443 off`.
+
+### Auf dem iPhone (iOS 16.4 oder neuer)
+
+1. App **Tailscale** aus dem App Store installieren, mit demselben Konto anmelden, VPN einschalten.
+2. In **Safari** die Adresse `https://<nas-name>.<tailnet>.ts.net` öffnen → Teilen-Symbol → **Zum Home-Bildschirm**.
+3. Die App über das neue Symbol öffnen → **Einstellungen** → „Erinnerung per Push“ einschalten, Mitteilungen erlauben, **Test senden**.
+
+Gut zu wissen:
+
+- Die `ts.net`-Adresse funktioniert nur, solange Tailscale auf dem iPhone an ist – zu Hause **und unterwegs**. Mit Tailscale ist die App also überall live.
+- Ist Tailscale aus oder das NAS nicht erreichbar, zeigt die App den zuletzt geladenen Stand mit einem blauen Hinweis. Aktualisieren und Einstellungen gehen dann nicht.
+- Push-Erinnerungen kommen immer, auch ohne Tailscale: Der Server schickt sie über Apple an das iPhone.
+- Die Uhrzeit (Standard 18 Uhr) gilt für alle Geräte; ein- und ausgeschaltet wird pro Gerät. Erinnert wird nur, wenn am nächsten Tag eine der angezeigten Müllarten abgeholt wird.
+- Jedes Gerät meldet sich einzeln an. Wird die App vom Home-Bildschirm gelöscht, entfernt der Server die Anmeldung beim nächsten Versand von selbst.
+
 ## Konfiguration (`.env`)
 
 | Variable | Bedeutung |
@@ -101,6 +130,9 @@ Danach ist die App unter `http://<NAS-IP>:8080` erreichbar. Die Termine und Eins
 | `REFRESH_INTERVAL_HOURS` | Automatischer Abruf in Stunden, `0` = nur per Button (Standard `168`) |
 | `DATA_DIR` | Speicherort für `config.json`/`pickups.json` (Standard `data`, im Container `/data`) |
 | `PUID`, `PGID` | Benutzer-/Gruppennummer, unter der der Container läuft; muss zum Besitzer von `data/` passen (Standard `1000`) |
+| `PUSH_ENABLED` | `0` schaltet den Versand der Push-Erinnerungen ab (Standard `1`) |
+| `VAPID_SUBJECT` | Absenderangabe für Push (`mailto:` oder `https:`), optional. Standard ist eine Platzhalter-Adresse. |
+| `VAPID_PRIVATE_KEY` | Optional. Schlüssel des Servers für Push (PEM). Ohne Angabe erzeugt die App einen und speichert ihn in `data/vapid.json` – dann nicht löschen, sonst müssen alle Geräte Push neu einschalten. |
 
 ## Datenquellen
 
@@ -119,9 +151,12 @@ app/
   refresh.py            ruft alle Quellen ab, speichert Ergebnis
   store.py              config.json / pickups.json
   ics.py                Kalender-Export
+  push.py               Push-Erinnerung (Schlüssel, Anmeldungen, Versand)
   sources/bsr.py        BSR (Adresssuche + Termine)
   sources/berlin_recycling.py  Kundenportal
   sources/manual.py     Papier-Turnus von Hand
   static/               Oberfläche (HTML/CSS/JS, kein Build-Schritt)
+  static/sw.js          Service Worker: Anzeige ohne Server, Push (unter /sw.js ausgeliefert)
+tools/make_icons.py     erzeugt die PNG-Icons aus static/icon.svg (braucht Chrome)
 tests/                  pytest, alle Webcalls gemockt
 ```

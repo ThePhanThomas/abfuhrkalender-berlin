@@ -36,8 +36,10 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
 | Druckansicht als Jahresplaner auf **einer** A4-Seite quer: je Monat eine Spalte mit Platz zum Eintragen, Wochenenden schattiert, Berliner Feiertage, KW, Fußzeile mit Berliner Skyline | `app/static/app.js` (`renderPlanner`, `berlinHolidays`), `app.css` (`@media print`), Fußzeile in `index.html` |
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
+| PWA: Symbol auf dem Home-Bildschirm (Manifest, PNG-Icons), Service Worker zeigt ohne Server den letzten Stand mit blauem Hinweis „Stand vom …“ | `app/static/sw.js`, `manifest.webmanifest`, `icons/`, `app.js` (`loadState`), Icons per `tools/make_icons.py` |
+| Push-Erinnerung am Vorabend (Uhrzeit einstellbar, Standard 18 Uhr; pro Gerät ein-/ausschaltbar, „Test senden“). Schlüssel in `data/vapid.json`, Geräte in `data/push.json` | `app/push.py`, `app/main.py` (`/api/push/*`, `_push_loop`), `app.js` (`renderPush`, `togglePush`) |
 | Docker-Setup für Synology (läuft auf DS723+), Benutzernummer per `PUID`/`PGID` | `Dockerfile`, `docker-compose.yml`, README |
-| Tests (31, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
+| Tests (44, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
 
@@ -54,26 +56,29 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Neues Design („Variante A“): App-Icon, Hero-Karte mit Countdown, Symbole je Müllart, farbig gefüllte Abholtage, Schatten statt Rahmen. Druckansicht unverändert |
 | – | Bio kräftiger braun, Wertstoffe zitronengelb (waren schwer zu unterscheiden); Einstellungsdialog auf dem Handy: Eingabefelder 16 px, damit Safari nicht hineinzoomt, Felder untereinander |
 | – | Glas und Sonstiges aus den Einstellungen entfernt (keine Quelle liefert dafür Termine); „Rhythmus“ heißt jetzt „Turnus“ |
+| – | PWA: Home-Bildschirm-Symbol, Anzeige ohne Server, Push-Erinnerung am Vorabend; HTTPS über Tailscale (Anleitung im README). Neue Abhängigkeiten `pywebpush`, `tzdata` |
 
 ## Offene Punkte
 
 In etwa nach Wichtigkeit:
 
-1. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
-2. **Nicht geprüft:**
+1. **PWA auf NAS und iPhone einrichten** (Anleitung im README, Abschnitt „Als App aufs iPhone“): Tailscale-Paket, `tailscale serve --bg 8080`, App über die `ts.net`-Adresse zum Home-Bildschirm, Push einschalten und testen. Danach hier festhalten, was geklappt hat.
+2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
+3. **Nicht geprüft:**
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
    - Druckvorschau in Safari/Firefox am Mac (geprüft: Chrome mit Rand 0 bis 20 mm und Safari auf dem iPhone, Quer- und Hochformat: je 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
    - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
+   - **PWA/Push nur am Mac in Chrome über `localhost` geprüft** (Service Worker, Anzeige ohne Server, Einstellungen). Nicht geprüft: echtes Anmelden für Push (im Testbrowser sind Mitteilungen gesperrt), Zustellung über Apple (`web.push.apple.com`) – insbesondere ob Apple die Platzhalter-Absenderangabe `mailto:abfuhrkalender@example.com` akzeptiert (sonst `VAPID_SUBJECT` setzen), Tailscale auf der Synology (Befehlspfad, Version des Pakets – `serve --bg` braucht Tailscale ab 1.52) und das Ganze auf einem echten iPhone.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
-3. **Kleinigkeiten:**
+4. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
-4. **Für die spätere PWA:** Aus `app/static/icon.svg` PNG-Größen erzeugen (180 px für iPhone, 192/512 px, Fassung „maskable“ mit mehr Rand) und für 16/32 px eine vereinfachte Fassung zeichnen – das volle Motiv wird dort zum Klecks.
-5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
+   - Favicon: für 16/32 px eine vereinfachte Fassung des Icons zeichnen – das volle Motiv wird dort zum Klecks. (Die PWA-Icons 180/192/512 px gibt es.)
+5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Mail.
 
 ## Lokale Umgebung
 
@@ -108,4 +113,7 @@ In etwa nach Wichtigkeit:
 - **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.
 - **Einstellungen auf dem iPhone zu breit:** Eingabefelder hatten 13 px Schrift; Safari zoomt bei unter 16 px beim Antippen hinein, danach musste man seitlich scrollen. In der Simulation am Mac nicht nachstellbar, weil dort nicht gezoomt wird – auf einem echten iPhone prüfen.
 - **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
+- **Service Worker und Push brauchen HTTPS** (Ausnahme: `localhost`). Über `http://<NAS-IP>:8080` meldet sich kein Service Worker an, die App läuft dann wie vorher. Auf dem iPhone geht Push außerdem nur, wenn die App vom Home-Bildschirm geöffnet wird, nicht in Safari.
+- **Offline testen:** Seite einmal laden (Service Worker speichert Seite und `/api/state`), Server stoppen, neu laden → blauer Hinweis mit Stand. Der Service Worker holt immer zuerst frisch vom Server (5 s Wartezeit), deshalb muss die Cache-Version (`CACHE` in `sw.js`) bei Updates nicht erhöht werden.
+- **`data/vapid.json` nicht löschen:** Das ist der Push-Schlüssel des Servers. Ein neuer Schlüssel macht alle Anmeldungen ungültig; jedes Gerät muss Push dann neu einschalten.
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.

@@ -21,7 +21,7 @@ Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als J
 1. **Keine persönlichen Daten im Code.** Keine Adressen, BSR-Adressschlüssel (`AddrKey`), Namen oder Zugangsdaten in Code, Tests, Commits oder Doku. Die Adresse wird in der App eingerichtet und landet nur in `data/config.json` (per `.gitignore` ausgeschlossen). Testdaten sind erfunden („Musterstr. 1A“).
 2. **Geheimnisse nur in `.env`.** Zugangsdaten (z. B. `BR_USERNAME`/`BR_PASSWORD`) kommen ausschließlich aus Umgebungsvariablen. Sie werden nie in `data/` gespeichert, nie geloggt und nie an die Oberfläche geschickt. `.env` und `data/` niemals committen.
 3. **Keine Schutzmechanismen umgehen.** Der öffentliche Mieter-Kalender von Berlin Recycling ist per reCAPTCHA geschützt – den nicht automatisieren. Nur die Schnittstellen nutzen, die ohne Tricks funktionieren (BSR-API, Kundenportal mit eigenem Login).
-4. **Tests machen keine echten Webcalls.** Externe Aufrufe werden mit `httpx.MockTransport` simuliert (siehe `tests/conftest.py`). Neue Funktionen bekommen Tests.
+4. **Tests machen keine echten Webcalls.** Externe Aufrufe werden mit `httpx.MockTransport` simuliert (siehe `tests/conftest.py`). Der Push-Versand (`push.webpush`) ist in Tests gesperrt; wer ihn testet, ersetzt ihn (Fixture `sent` in `tests/test_push.py`). Neue Funktionen bekommen Tests.
 5. **Ein Ausfall darf nichts löschen.** Schlägt eine Quelle fehl, bleiben ihre alten Termine erhalten (`app/refresh.py`). Fehlermeldungen für die Oberfläche sind deutsch und verständlich (`SourceError("…")`).
 
 ## Entwickeln
@@ -41,7 +41,8 @@ Vor jedem Commit die Tests laufen lassen. Bei Änderungen an der Oberfläche die
 - **Frontend:** `app/static/` – reines HTML/CSS/JavaScript ohne Build-Schritt und ohne externe Bibliotheken oder CDNs. So soll es bleiben.
 - **Quellen:** Jede Datenquelle ist ein Modul in `app/sources/` mit einer Funktion, die eine Liste von `Pickup` (siehe `app/models.py`) zurückgibt. Eine neue Quelle wird in `app/refresh.py` eingehängt.
 - **Müllarten** haben Kürzel (`HM`, `BI`, `WS`, `PP`, …) in `app/models.py`. Die Farben stehen als CSS-Variablen `--c-<Kürzel>` in `app/static/app.css` (hell und dunkel).
-- **Daten:** `data/config.json` (Einstellungen) und `data/pickups.json` (abgerufene Termine, je Quelle).
+- **Daten:** `data/config.json` (Einstellungen), `data/pickups.json` (abgerufene Termine, je Quelle), `data/push.json` (für Push angemeldete Geräte) und `data/vapid.json` (Push-Schlüssel des Servers).
+- **PWA:** `app/static/sw.js` (unter `/sw.js` ausgeliefert) speichert Seite und `/api/state` für die Anzeige ohne Server und empfängt Push. Läuft nur über HTTPS – auf dem NAS per Tailscale (README).
 
 ## Schnittstellen (Stand November 2026)
 
