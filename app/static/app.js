@@ -1,0 +1,269 @@
+"use strict";
+
+const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const SOURCE_NAMES = { bsr: "BSR", berlin_recycling: "Berlin Recycling", paper_manual: "Papier (manuell)" };
+
+const $ = (id) => document.getElementById(id);
+let state = null;
+let selectedYear = null;
+let pendingAddress = null;
+
+// ---------- helpers ----------
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const parseIso = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const fmtDate = (s) => { const d = parseIso(s); return `${WEEKDAYS[d.getDay()]}, ${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`; };
+const catName = (c) => (state && state.categories[c]) || c;
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  if (!res.ok) {
+    let msg = `Fehler ${res.status}`;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") msg = body.detail;
+      else if (Array.isArray(body.detail)) msg = body.detail.map((d) => d.msg).join(", ");
+    } catch { /* keep default */ }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+function visiblePickups() {
+  const cats = new Set(state.config.categories);
+  return state.pickups.filter((p) => cats.has(p.category));
+}
+
+// ---------- rendering ----------
+function render() {
+  const cfg = state.config;
+  $("address").textContent = cfg.address ? cfg.address.label : "Adresse einrichten";
+  renderStatus();
+  renderYears();
+  renderNext();
+  renderLegend();
+  renderMonths();
+}
+
+function renderStatus() {
+  const parts = [];
+  if (state.updated_at) {
+    const d = new Date(state.updated_at);
+    parts.push(`Zuletzt aktualisiert: ${d.toLocaleDateString("de-DE")}, ${d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`);
+  } else {
+    parts.push("Noch keine Daten abgerufen");
+  }
+  const errors = [];
+  for (const [name, s] of Object.entries(state.sources)) {
+    const label = SOURCE_NAMES[name] || name;
+    if (s.ok) parts.push(`${esc(label)} ok (${s.count} Termine)`);
+    else { parts.push(`<span class="bad">${esc(label)}: Fehler</span>`); errors.push(`${label}: ${s.error}`); }
+  }
+  $("status").innerHTML = parts.map((p, i) => (i === 0 ? esc(p) : p)).join(" · ");
+  const banner = $("banner");
+  banner.hidden = errors.length === 0;
+  banner.textContent = errors.length ? `${errors.join(" · ")} — vorhandene Termine bleiben erhalten.` : "";
+}
+
+function renderYears() {
+  const years = new Set([new Date().getFullYear()]);
+  state.pickups.forEach((p) => years.add(Number(p.date.slice(0, 4))));
+  const sorted = [...years].sort();
+  if (!selectedYear || !years.has(selectedYear)) selectedYear = new Date().getFullYear();
+  $("year").innerHTML = sorted.map((y) => `<option ${y === selectedYear ? "selected" : ""}>${y}</option>`).join("");
+  document.title = `Abfuhrkalender ${selectedYear}`;
+}
+
+function renderNext() {
+  const today = iso(new Date());
+  const tomorrow = iso(new Date(Date.now() + 864e5));
+  const next = new Map();
+  for (const p of visiblePickups()) {
+    if (p.date >= today && !next.has(p.category)) next.set(p.category, p);
+  }
+  const items = [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
+  if (!items.length) {
+    $("next").innerHTML = `<p class="empty">${state.config.address ? "Keine kommenden Termine. Daten aktualisieren?" : "Richte zuerst deine Adresse ein."}</p>`;
+    return;
+  }
+  $("next").innerHTML = items.map((p) => {
+    const days = Math.round((parseIso(p.date) - parseIso(today)) / 864e5);
+    const when = p.date === today ? "Heute" : p.date === tomorrow ? "Morgen" : `in ${days} Tagen`;
+    const soon = days <= 1 ? " soon" : "";
+    const note = p.moved_from ? " · verschoben" : "";
+    return `<div class="card${soon}" style="--c: var(--c-${p.category})">
+      <div class="when">${when}</div>
+      <div class="what">${esc(catName(p.category))}</div>
+      <div class="date">${fmtDate(p.date)}${note}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderLegend() {
+  const html = state.config.categories.map((c) => `<span><span class="sw" style="background: var(--c-${c})"></span>${esc(catName(c))}</span>`);
+  html.push(`<span><span class="dot moved" style="--c: var(--text-3); display:inline-block; margin-right:6px"></span>Feiertagsverschiebung</span>`);
+  $("legend").innerHTML = html.join("");
+}
+
+function renderMonths() {
+  const byDay = new Map();
+  for (const p of visiblePickups()) {
+    if (!p.date.startsWith(String(selectedYear))) continue;
+    if (!byDay.has(p.date)) byDay.set(p.date, []);
+    byDay.get(p.date).push(p);
+  }
+  const today = iso(new Date());
+  let html = "";
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(selectedYear, m, 1);
+    const days = new Date(selectedYear, m + 1, 0).getDate();
+    let g = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((w) => `<div class="wd">${w}</div>`).join("");
+    g += "<div></div>".repeat((first.getDay() + 6) % 7);
+    for (let d = 1; d <= days; d++) {
+      const key = iso(new Date(selectedYear, m, d));
+      const ps = byDay.get(key) || [];
+      const cls = ["day", ps.length ? "has" : "", key === today ? "today" : "", key < today ? "past" : ""].join(" ");
+      const title = ps.map((p) => `${catName(p.category)} (${p.provider})${p.moved_from ? ` – verlegt vom ${fmtDate(p.moved_from)}` : ""}`).join("\n");
+      const dots = ps.map((p) => `<span class="dot${p.moved_from ? " moved" : ""}" style="--c: var(--c-${p.category})"></span>`).join("");
+      g += `<div class="${cls}"${title ? ` title="${esc(title)}"` : ""}>${d}${dots ? `<div class="dots">${dots}</div>` : ""}</div>`;
+    }
+    html += `<section class="month"><h3>${MONTHS[m]} ${selectedYear}</h3><div class="grid">${g}</div></section>`;
+  }
+  $("months").innerHTML = html;
+}
+
+// ---------- settings dialog ----------
+function openSettings() {
+  const cfg = state.config;
+  pendingAddress = cfg.address;
+  $("welcome").hidden = !!cfg.address;
+  $("addr-current").textContent = cfg.address ? `Aktuell: ${cfg.address.label}` : "";
+  $("addr-results").innerHTML = "";
+  $("addr-error").textContent = "";
+  $("settings-error").textContent = "";
+  $("cats").innerHTML = Object.entries(state.categories).map(([code, name]) =>
+    `<label class="radio"><input type="checkbox" value="${code}" ${cfg.categories.includes(code) ? "checked" : ""}>
+      <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c-${code})"></span>${esc(name)}</label>`).join("");
+  const mode = cfg.paper.mode;
+  document.querySelectorAll('input[name="paper"]').forEach((r) => { r.checked = r.value === mode; });
+  $("portal-hint").textContent = state.portal_configured
+    ? "Zugangsdaten sind auf dem Server hinterlegt."
+    : "Dafür müssen BR_USERNAME und BR_PASSWORD in der .env-Datei auf dem Server stehen.";
+  $("first-date").value = cfg.paper.first_date || "";
+  $("interval").value = cfg.paper.interval_weeks || 4;
+  updateManualRow();
+  $("dlg-settings").showModal();
+}
+
+function updateManualRow() {
+  const manual = document.querySelector('input[name="paper"]:checked')?.value === "manual";
+  $("manual-row").style.display = manual ? "" : "none";
+}
+
+async function searchAddress() {
+  const street = $("street").value.trim();
+  const number = $("number").value.trim();
+  $("addr-error").textContent = "";
+  $("addr-results").innerHTML = "";
+  if (!street || !number) { $("addr-error").textContent = "Straße und Hausnummer eingeben."; return; }
+  $("btn-search").disabled = true;
+  try {
+    const results = await api(`/api/address/search?street=${encodeURIComponent(street)}&number=${encodeURIComponent(number)}`);
+    if (!results.length) { $("addr-error").textContent = "Keine Adresse gefunden. Schreibweise prüfen."; return; }
+    $("addr-results").innerHTML = results.map((r, i) => `<button type="button" data-i="${i}">${esc(r.label)}</button>`).join("");
+    $("addr-results").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+      pendingAddress = results[Number(b.dataset.i)];
+      $("addr-results").querySelectorAll("button").forEach((x) => x.classList.toggle("selected", x === b));
+      $("addr-current").textContent = `Ausgewählt: ${pendingAddress.label}`;
+    }));
+    if (results.length === 1) $("addr-results").querySelector("button").click();
+  } catch (e) {
+    $("addr-error").textContent = e.message;
+  } finally {
+    $("btn-search").disabled = false;
+  }
+}
+
+async function saveSettings(ev) {
+  ev.preventDefault();
+  $("settings-error").textContent = "";
+  if (!pendingAddress) { $("settings-error").textContent = "Bitte eine Adresse suchen und auswählen."; return; }
+  const categories = [...$("cats").querySelectorAll("input:checked")].map((i) => i.value);
+  if (!categories.length) { $("settings-error").textContent = "Mindestens eine Müllart auswählen."; return; }
+  const mode = document.querySelector('input[name="paper"]:checked')?.value || "off";
+  const paper = { mode, first_date: $("first-date").value || null, interval_weeks: Number($("interval").value) || 4 };
+  if (mode === "manual" && !paper.first_date) { $("settings-error").textContent = "Datum einer bekannten Papier-Abholung angeben."; return; }
+  $("btn-save").disabled = true;
+  $("btn-save").textContent = "Speichere…";
+  try {
+    state = await api("/api/config", { method: "PUT", body: JSON.stringify({ address: pendingAddress, categories, paper }) });
+    $("dlg-settings").close();
+    render();
+  } catch (e) {
+    $("settings-error").textContent = e.message;
+  } finally {
+    $("btn-save").disabled = false;
+    $("btn-save").textContent = "Speichern";
+  }
+}
+
+// ---------- subscribe dialog ----------
+function icsUrl() {
+  return `${location.origin}/api/calendar.ics${$("ics-reminder").checked ? "?reminder=true" : ""}`;
+}
+function updateIcs() {
+  $("ics-url").value = icsUrl();
+  $("ics-download").href = icsUrl();
+}
+
+// ---------- actions ----------
+async function refresh() {
+  if (!state.config.address) { openSettings(); return; }
+  const btn = $("btn-refresh");
+  btn.disabled = true;
+  btn.textContent = "Lade…";
+  try {
+    state = await api("/api/refresh", { method: "POST" });
+    render();
+  } catch (e) {
+    $("banner").hidden = false;
+    $("banner").textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Daten aktualisieren";
+  }
+}
+
+async function init() {
+  $("btn-refresh").addEventListener("click", refresh);
+  $("btn-settings").addEventListener("click", openSettings);
+  $("address").addEventListener("click", openSettings);
+  $("btn-print").addEventListener("click", () => window.print());
+  $("btn-subscribe").addEventListener("click", () => { updateIcs(); $("dlg-subscribe").showModal(); });
+  $("ics-reminder").addEventListener("change", updateIcs);
+  $("btn-copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(icsUrl()); $("btn-copy").textContent = "Kopiert"; }
+    catch { $("ics-url").select(); }
+    setTimeout(() => { $("btn-copy").textContent = "Kopieren"; }, 1500);
+  });
+  $("year").addEventListener("change", (e) => { selectedYear = Number(e.target.value); renderYears(); renderMonths(); });
+  $("btn-search").addEventListener("click", searchAddress);
+  $("number").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(); } });
+  $("street").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("number").focus(); } });
+  $("settings-form").addEventListener("submit", saveSettings);
+  $("btn-cancel").addEventListener("click", () => $("dlg-settings").close());
+  document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updateManualRow));
+
+  try {
+    state = await api("/api/state");
+  } catch (e) {
+    $("banner").hidden = false;
+    $("banner").textContent = `Server nicht erreichbar: ${e.message}`;
+    return;
+  }
+  render();
+  if (!state.config.address) openSettings();
+}
+
+init();
