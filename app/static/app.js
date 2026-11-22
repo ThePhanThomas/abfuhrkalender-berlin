@@ -129,13 +129,92 @@ function renderMonths() {
       const key = iso(new Date(selectedYear, m, d));
       const ps = byDay.get(key) || [];
       const cls = ["day", ps.length ? "has" : "", key === today ? "today" : "", key < today ? "past" : ""].join(" ");
-      const title = ps.map((p) => `${catName(p.category)} (${p.provider})${p.moved_from ? ` – verlegt vom ${fmtDate(p.moved_from)}` : ""}`).join("\n");
       const dots = ps.map((p) => `<span class="dot${p.moved_from ? " moved" : ""}" style="--c: var(--c-${p.category})"></span>`).join("");
-      g += `<div class="${cls}"${title ? ` title="${esc(title)}"` : ""}>${d}${dots ? `<div class="dots">${dots}</div>` : ""}</div>`;
+      const attrs = ps.length
+        ? ` data-date="${key}" tabindex="0" aria-label="${esc(`${fmtDate(key)}: ${ps.map((p) => catName(p.category) + (p.moved_from ? " (verschoben)" : "")).join(", ")}`)}"`
+        : "";
+      g += `<div class="${cls}"${attrs}>${d}${dots ? `<div class="dots">${dots}</div>` : ""}</div>`;
     }
     html += `<section class="month"><h3>${MONTHS[m]} ${selectedYear}</h3><div class="grid">${g}</div></section>`;
   }
+  dayIndex = byDay;
+  hideTip();
   $("months").innerHTML = html;
+}
+
+// ---------- day tooltip ----------
+let dayIndex = new Map();
+let tipFor = null;
+
+function relativeDay(dateIso) {
+  const days = Math.round((parseIso(dateIso) - parseIso(iso(new Date()))) / 864e5);
+  if (days === 0) return "Heute";
+  if (days === 1) return "Morgen";
+  if (days === -1) return "Gestern";
+  return days > 0 ? `in ${days} Tagen` : `vor ${-days} Tagen`;
+}
+
+function tipHtml(dateIso) {
+  const items = (dayIndex.get(dateIso) || []).map((p) => {
+    const extra = p.moved_from
+      ? `<div class="tip-moved">Verschoben vom ${fmtDate(p.moved_from)}</div>`
+      : p.note ? `<div class="tip-note">${esc(p.note)}</div>` : "";
+    return `<li style="--c: var(--c-${p.category})">
+      <span class="dot${p.moved_from ? " moved" : ""}"></span>
+      <div><div class="tip-name">${esc(catName(p.category))}</div>
+      <div class="tip-provider">${esc(p.provider)}</div>${extra}</div>
+    </li>`;
+  }).join("");
+  return `<div class="tip-head"><span>${fmtDate(dateIso)}</span><span class="tip-rel">${relativeDay(dateIso)}</span></div><ul>${items}</ul>`;
+}
+
+function showTip(cell) {
+  const tip = $("tip");
+  tipFor = cell;
+  tip.innerHTML = tipHtml(cell.dataset.date);
+  tip.hidden = false;
+  // Prefer below the cell, flip above if there is no room; keep inside the viewport.
+  const r = cell.getBoundingClientRect();
+  const t = tip.getBoundingClientRect();
+  const margin = 8;
+  let left = r.left + r.width / 2 - t.width / 2;
+  left = Math.max(margin, Math.min(left, window.innerWidth - t.width - margin));
+  let top = r.bottom + 6;
+  if (top + t.height > window.innerHeight - margin) top = r.top - t.height - 6;
+  tip.style.left = `${left + window.scrollX}px`;
+  tip.style.top = `${top + window.scrollY}px`;
+}
+
+function hideTip() {
+  tipFor = null;
+  const tip = $("tip");
+  if (tip) tip.hidden = true;
+}
+
+function initTooltip() {
+  const months = $("months");
+  const cellOf = (e) => e.target.closest(".day[data-date]");
+  months.addEventListener("mouseover", (e) => { const c = cellOf(e); if (c && c !== tipFor) showTip(c); });
+  months.addEventListener("mouseout", (e) => {
+    const c = cellOf(e);
+    if (c && !c.contains(e.relatedTarget) && document.activeElement !== c) hideTip();
+  });
+  months.addEventListener("focusin", (e) => { const c = cellOf(e); if (c) showTip(c); });
+  months.addEventListener("focusout", hideTip);
+  // Touch: tap a day to show, tap again or elsewhere to hide. Whether the tip
+  // was already open must be read on pointerdown, because the tap also focuses
+  // the cell (focusin opens the tip) before the click event arrives.
+  let wasOpen = false;
+  months.addEventListener("pointerdown", (e) => { const c = cellOf(e); wasOpen = !!c && tipFor === c; });
+  months.addEventListener("click", (e) => {
+    const c = cellOf(e);
+    if (!c) return;
+    if (wasOpen && e.pointerType !== "mouse") { hideTip(); c.blur(); } else showTip(c);
+  });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".day[data-date]")) hideTip(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTip(); });
+  window.addEventListener("scroll", () => { if (tipFor) showTip(tipFor); }, { passive: true });
+  window.addEventListener("resize", hideTip);
 }
 
 // ---------- settings dialog ----------
@@ -243,6 +322,7 @@ async function refresh() {
 }
 
 async function init() {
+  initTooltip();
   $("btn-refresh").addEventListener("click", refresh);
   $("btn-settings").addEventListener("click", openSettings);
   $("address").addEventListener("click", openSettings);
