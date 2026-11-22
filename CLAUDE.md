@@ -4,7 +4,7 @@ Hinweise für Claude (und Menschen), die an diesem Repository arbeiten.
 
 ## Worum es geht
 
-Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als Jahreskalender zeigt. Sie läuft im Heimnetz als Docker-Container auf einer Synology. Mehr dazu im [README](README.md).
+Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als Jahreskalender zeigt. Sie läuft im Heimnetz als Docker-Container – bei uns auf einer Synology, grundsätzlich auf jedem Rechner mit Docker. Mehr dazu im [README](README.md).
 
 **Zu Beginn jeder Session [docs/STATUS.md](docs/STATUS.md) lesen** (gilt für die Hauptsitzung, nicht für Subagents) – dort stehen der aktuelle Stand, offene Punkte und bekannte Stolpersteine. Wer etwas abschließt oder Neues herausfindet, aktualisiert die Datei im selben Pull Request.
 
@@ -71,4 +71,4 @@ Wenn eine Schnittstelle nicht mehr funktioniert: erst mit `curl` prüfen, was si
 
 ## Deployment
 
-Auf der Synology über den Container Manager mit `docker-compose.yml` (siehe README). Nach Änderungen: `git pull` im Projektordner auf dem NAS, dann Projekt neu bauen und starten.
+Mit `docker-compose.yml` auf jedem Rechner mit Docker (siehe README); bei uns auf der Synology über den Container Manager. Nach Änderungen: `git pull` im Projektordner, dann neu bauen und starten (`docker compose up -d --build` bzw. im Container Manager).
