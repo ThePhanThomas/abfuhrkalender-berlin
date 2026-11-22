@@ -74,7 +74,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #26 | iPad-App: Kopfzeile um den Systemrand eingerückt (half auf dem iPad nicht) |
 | #27 | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt (auf dem iPad geprüft) |
 | – | Kacheln heben sich besser ab: Hintergrund etwas dunkler (hell `#f1efe9`, dunkel `#151514`), Schatten kräftiger mit feiner Kante; Farbe auch in `theme-color`/Manifest. Druckansicht unverändert |
-| – | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README |
+| – | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README; README: Code per `git clone https://…` statt Deploy-Key |
 
 ## Offene Punkte
 
@@ -123,7 +123,7 @@ In etwa nach Wichtigkeit:
 
 - **`$` im Passwort (Docker):** Docker liest die `.env` anders als der lokale Server und hält `$` für einen Platzhalter – das Passwort kam auf dem NAS gekürzt an, Login scheiterte. Lösung: in der `.env` auf dem NAS `$$` schreiben. Prüfen ohne die Werte zu zeigen: Länge per `docker exec` ausgeben (Befehl im README).
 - **`.env` auf dem NAS geändert:** Container muss neu erstellt werden (`sudo docker compose up -d --force-recreate`), ein Neustart reicht nicht.
-- **GitHub-Token ließ sich nicht anlegen** (Button „Generate token“ ohne Reaktion, in zwei Browsern). Deshalb holt das NAS den Code per Deploy-Key (nur Lesen, nur dieses Repo).
+- **GitHub-Token ließ sich nicht anlegen** (Button „Generate token“ ohne Reaktion, in zwei Browsern). Deshalb holt unser NAS den Code per Deploy-Key (nur Lesen, nur dieses Repo, Adresse `github-abfuhrkalender:…`). Das funktioniert auch nach dem Öffentlichmachen weiter; im README steht jetzt nur noch der einfache Weg per `git clone https://…`.
 - **Container Manager meldet beim ersten Erstellen einen Fehler**, der Build lief aber im Hintergrund weiter und die App lief danach. Erst abwarten, dann per SSH `sudo docker compose build` für die echte Meldung.
 - **Berlin-Recycling-Login:** Nach `Login.aspx/Auth` muss `Default.aspx` einmal per GET geöffnet werden, sonst antworten die Datenabfragen mit `{"Error": …}`. Der Test-Mock in `tests/conftest.py` bildet das über ein Sitzungs-Cookie nach.
 - **Müllarten ohne Termine:** Laubtonne und Weihnachtsbaum kommen von der BSR, aber nur, wenn es sie an der Adresse gibt (Weihnachtsbaum nur im Januar, also oft erst im nächsten Jahr sichtbar). Glas und Sonstiges sind nicht wählbar: Das Kundenportal würde Glas zwar als `GL` erkennen, liefert bei uns aber nur Papier. Ältere `config.json` mit `GL`/`SO` werden beim Laden bereinigt (`store.load_config`).
