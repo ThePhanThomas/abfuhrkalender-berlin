@@ -74,7 +74,8 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #26 | iPad-App: Kopfzeile um den Systemrand eingerückt (half auf dem iPad nicht) |
 | #27 | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt (auf dem iPad geprüft) |
 | – | Kacheln heben sich besser ab: Hintergrund etwas dunkler (hell `#f1efe9`, dunkel `#151514`), Schatten kräftiger mit feiner Kante; Farbe auch in `theme-color`/Manifest. Druckansicht unverändert |
-| – | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README; README: Code per `git clone https://…` statt Deploy-Key |
+| #31 | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README; README: Code per `git clone https://…` statt Deploy-Key |
+| – | Repo auf GitHub öffentlich geschaltet (22.11.2026) |
 
 ## Offene Punkte
 
@@ -100,7 +101,7 @@ In etwa nach Wichtigkeit:
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
    - Favicon: für 16/32 px eine vereinfachte Fassung des Icons zeichnen – das volle Motiv wird dort zum Klecks. (Die PWA-Icons 180/192/512 px gibt es.)
-4. **Repo öffentlich machen:** Prüfung ist erledigt, Lizenz liegt bei. Das Umschalten selbst macht der Besitzer auf GitHub (Settings → General → „Change visibility“). Hinweis: Ältere Commits nennen als Autor den vollen Namen und den Rechnernamen (`…@Mac.fritz.box`) – ob die Historie umgeschrieben wird, ist noch nicht entschieden; für neue Commits lässt sich die anonyme GitHub-Adresse einstellen (`git config user.email "<id>+<name>@users.noreply.github.com"`).
+4. **Commit-Autoren:** Das Repo ist seit 22.11.2026 öffentlich. Ältere Commits nennen als Autor den vollen Namen und den Rechnernamen (`…@Mac.fritz.box`) – ob die Historie umgeschrieben wird, ist noch nicht entschieden (bräuchte ein erzwungenes Überschreiben auf GitHub und ein neues Holen auf dem NAS). Für neue Commits lässt sich die anonyme GitHub-Adresse einstellen (`git config user.email "<id>+<name>@users.noreply.github.com"`).
 5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Mail.
 
 ## Lokale Umgebung
