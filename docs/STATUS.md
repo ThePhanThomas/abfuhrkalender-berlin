@@ -73,6 +73,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Einstellungen neu sortiert (Karten, Kacheln, Schalter, Vorschläge beim Tippen); vergangene Monate als Stapel unter dem laufenden Monat |
 | #26 | iPad-App: Kopfzeile um den Systemrand eingerückt (half auf dem iPad nicht) |
 | #27 | iPad-App: Kopf 28 px tiefer, unter die Unschärfe am oberen Rand; Glaseffekt bleibt (auf dem iPad geprüft) |
+| – | Kacheln heben sich besser ab: Hintergrund etwas dunkler (hell `#f1efe9`, dunkel `#151514`), Schatten kräftiger mit feiner Kante; Farbe auch in `theme-color`/Manifest. Druckansicht unverändert |
 
 ## Offene Punkte
 

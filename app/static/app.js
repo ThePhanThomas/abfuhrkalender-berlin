@@ -376,7 +376,7 @@ function applyTheme() {
   const metas = document.querySelectorAll('meta[name="theme-color"]');
   metas.forEach((m) => {
     const forDark = choice === "auto" ? m.media.includes("dark") : dark;
-    m.content = forDark ? "#1a1a19" : "#f7f6f2";
+    m.content = forDark ? "#151514" : "#f1efe9";
   });
   const t = THEMES[choice];
   $("theme-icon").setAttribute("d", t.icon);
