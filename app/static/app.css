@@ -322,6 +322,8 @@ legend { font-weight: 600; margin-bottom: 8px; }
     --c-HM: #5f5e5a; --c-BI: #8b4a1c; --c-WS: #f2c400;
   }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Safari (iPhone) vergrößert kleine Schrift sonst von selbst – dann ragen Feiertage aus der Zeile */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* Keine feste Blattgröße: iOS/Safari ignorieren margin 0 und drucken mit eigenem Rand (iPhone: ca. 17 mm).
      Deshalb volle verfügbare Breite und Höhe im Seitenverhältnis, mit etwas Luft nach unten – sonst hängt Safari eine leere Seite an. */
   body {
@@ -369,7 +371,7 @@ legend { font-weight: 600; margin-bottom: 8px; }
   .pl-dots { flex: none; display: flex; gap: 0.5mm; }
   .pl-dots .dot { width: 2.2mm; height: 2.2mm; }
   .pl-dots .dot.moved { outline-width: 0.3mm; outline-offset: 0.2mm; }
-  .pl-note { flex: 1; min-width: 0; max-height: 100%; overflow: hidden; font-size: 5.2pt; line-height: 1.05; color: var(--text-2); }
+  .pl-note { flex: 1; min-width: 0; max-height: 100%; overflow: hidden; font-size: 4.6pt; line-height: 1.05; color: var(--text-2); }
   .pl-mo .pl-note { padding-right: 2mm; }
   .pl-note { hyphens: manual; }
   .pl-kw { position: absolute; right: 0.4mm; top: 0.3mm; font-size: 4.5pt; color: var(--text-3); }
