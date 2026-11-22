@@ -1,6 +1,6 @@
 # Abfuhrkalender Berlin
 
-Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse – als kleine Web-App fürs Heimnetz (z. B. auf einer Synology).
+Jahresübersicht der Müllabfuhrtermine für eine beliebige Berliner Adresse – als kleine Web-App fürs Heimnetz. Sie läuft überall, wo es Docker gibt: auf einem NAS (Synology, QNAP, Unraid …), einem Raspberry Pi oder einem Server.
 
 - **Hausmüll, Biogut, Wertstoffe (gelbe Tonne)** – automatisch von der BSR, inkl. Feiertagsverschiebungen. Wertstoffe, die ALBA abholt, kommen ebenfalls über die BSR.
 - **Papier (Berlin Recycling)** – entweder per Login ins Kundenportal (für Eigentümer/Verwaltungen) oder als selbst angegebener Turnus.
@@ -30,19 +30,57 @@ Tests:
 .venv/bin/python -m pytest -q
 ```
 
-## Betrieb auf der Synology (Container Manager)
+## Betrieb mit Docker
+
+Die App wird als Docker-Container gebaut und gestartet (`Dockerfile`, `docker-compose.yml`). Das klappt auf jedem Rechner mit **Docker** und **Docker Compose** – NAS, Raspberry Pi (64 Bit), Mini-PC oder Server. Ausprobiert ist sie bisher auf einer Synology DS723+ (Anleitung dafür [weiter unten](#beispiel-synology-container-manager)).
+
+### Allgemein (jeder Rechner mit Docker)
+
+Per Terminal bzw. SSH auf dem Rechner:
+
+```bash
+git clone <repo-adresse> abfuhrkalender
+cd abfuhrkalender && mkdir data && cp .env.example .env && id
+```
+
+- `<repo-adresse>`: Das Repo ist privat; wie man es ohne Passwort mit einem Deploy-Key holt, steht [im Synology-Beispiel](#code-aufs-nas-holen-deploy-key) und funktioniert auf jedem Linux-Rechner gleich.
+- Den Ordner `data` **selbst** anlegen (wie oben). Sonst legt Docker ihn mit Administrator-Rechten (`root`) an und die App kann dort nicht speichern.
+- `.env` mit einem Texteditor ausfüllen:
+  - `PUID`/`PGID`: die Zahlen hinter `uid=` und `gid=` aus der Ausgabe von `id` (auf vielen Linux-Rechnern `1000`, auf der Synology oft `1026` und `100`).
+  - `BR_USERNAME`/`BR_PASSWORD`: Login fürs Kundenportal, falls gewünscht. **Jedes `$` doppelt schreiben (`$$`)** – Docker hält `$` sonst für einen Platzhalter und schneidet das Passwort stillschweigend ab; der Login scheitert dann mit „Zugangsdaten prüfen“. Keine Anführungszeichen verwenden. (Nur in der `.env` für Docker; beim lokalen Start ohne Docker bleibt das einfache `$`.)
+
+Starten (der erste Build dauert ein paar Minuten):
+
+```bash
+docker compose up -d --build
+```
+
+Danach ist die App unter `http://<IP-des-Rechners>:8080` erreichbar. Termine und Einstellungen liegen in `data/` und überleben Updates. Je nach System braucht `docker` ein vorangestelltes `sudo`.
+
+**Ändern und aktualisieren:**
+
+- **Neuer Code:** `git pull` im Projektordner, dann `docker compose up -d --build`.
+- **`.env` geändert:** Ein Neustart reicht nicht, der Container muss neu erstellt werden: `docker compose up -d --force-recreate`.
+- **Prüfen, ob die Zugangsdaten richtig ankommen** (zeigt nur die Länge, nicht den Wert):
+  ```bash
+  docker exec abfuhrkalender python -c "import os; p=os.environ.get('BR_PASSWORD',''); print('Länge Passwort:', len(p))"
+  ```
+
+Der Container startet nach einem Neustart des Rechners von selbst wieder (`restart: unless-stopped`). Ein anderer Port als 8080 lässt sich in `docker-compose.yml` einstellen (`ports`, linke Zahl).
+
+### Beispiel: Synology (Container Manager)
 
 Läuft auf einer DS723+ mit DSM 7.2 und dem Paket **Container Manager**. Andere Modelle, auf denen der Container Manager läuft (meist „+“-Modelle), sollten genauso funktionieren.
 
-### Einmalig vorbereiten
+#### Einmalig vorbereiten
 
 1. **Paket-Zentrum:** **Container Manager** (legt den freigegebenen Ordner `docker` an), **Git Server** (liefert das Programm `git`, sonst nichts einrichten) und **Text-Editor** installieren.
 2. **Systemsteuerung → Terminal & SNMP:** SSH-Dienst aktivieren. Der eigene NAS-Benutzer muss zur Gruppe „administrators“ gehören.
 3. **Systemsteuerung → Benutzer und Gruppe → Erweitert:** „Benutzer-Home-Dienst aktivieren“ (dort liegt der SSH-Schlüssel).
 
-### Code aufs NAS holen (Deploy-Key)
+#### Code aufs NAS holen (Deploy-Key)
 
-Das Repo ist privat. Ein Zugangs-Token ließ sich auf GitHub nicht anlegen (der Button „Generate token“ reagierte nicht), deshalb nutzen wir einen **Deploy-Key**: ein Schlüsselpaar, das das NAS erzeugt und das bei GitHub nur für dieses Repo und nur zum Lesen hinterlegt ist.
+Das Repo ist privat. Ein Zugangs-Token ließ sich auf GitHub nicht anlegen (der Button „Generate token“ reagierte nicht), deshalb nutzen wir einen **Deploy-Key**: ein Schlüsselpaar, das das NAS erzeugt und das bei GitHub nur für dieses Repo und nur zum Lesen hinterlegt ist. Das funktioniert genauso auf jedem anderen Linux-Rechner.
 
 Per SSH auf dem NAS (`ssh <benutzer>@<NAS-IP>`):
 
@@ -59,18 +97,15 @@ ssh -T github-abfuhrkalender   # beim ersten Mal Fingerabdruck prüfen: SHA256:+
 cd /volume1/docker && git clone github-abfuhrkalender:<github-benutzer>/abfuhrkalender-berlin.git abfuhrkalender
 ```
 
-### Einrichten
+#### Einrichten
 
 ```bash
 cd /volume1/docker/abfuhrkalender && mkdir data && cp .env.example .env && id
 ```
 
-- Den Ordner `data` **selbst** anlegen (wie oben). Sonst legt Docker ihn mit Administrator-Rechten an und die App kann dort nicht speichern.
-- `.env` in der File Station mit dem Text-Editor öffnen und ausfüllen:
-  - `PUID`/`PGID`: die Zahlen hinter `uid=` und `gid=` aus der Ausgabe von `id` (z. B. `1026` und `100`).
-  - `BR_USERNAME`/`BR_PASSWORD`: Login fürs Kundenportal, falls gewünscht. **Jedes `$` doppelt schreiben (`$$`)** – Docker hält `$` sonst für einen Platzhalter und schneidet das Passwort stillschweigend ab; der Login scheitert dann mit „Zugangsdaten prüfen“. Keine Anführungszeichen verwenden. (Nur in der `.env` für Docker; lokal auf dem Mac bleibt das einfache `$`.)
+`.env` dann in der File Station mit dem Text-Editor öffnen und wie [oben beschrieben](#allgemein-jeder-rechner-mit-docker) ausfüllen.
 
-### Starten
+#### Starten
 
 Container Manager → **Projekt** → **Erstellen**:
 
@@ -80,48 +115,39 @@ Container Manager → **Projekt** → **Erstellen**:
 
 Der erste Build dauert ein paar Minuten. Meldet der Container Manager dabei „Projekt konnte nicht erstellt werden“, lief der Build bei uns trotzdem im Hintergrund weiter – erst ein paar Minuten warten und `http://<NAS-IP>:8080` aufrufen. Den echten Fehler sieht man per SSH mit `cd /volume1/docker/abfuhrkalender && sudo docker compose build`.
 
-Danach ist die App unter `http://<NAS-IP>:8080` erreichbar. Die Termine und Einstellungen liegen in `data/` und überleben Updates.
+#### Ändern und aktualisieren
 
-### Ändern und aktualisieren
-
-- **`.env` geändert:** Ein Neustart reicht nicht, der Container muss neu erstellt werden:
-  ```bash
-  cd /volume1/docker/abfuhrkalender && sudo docker compose up -d --force-recreate
-  ```
-- **Neuer Code:** `git pull` im Projektordner, dann im Container Manager beim Projekt „Erstellen“ (Build) und neu starten – oder per SSH `sudo docker compose up -d --build`.
-- **Prüfen, ob die Zugangsdaten richtig ankommen** (zeigt nur Längen, nicht die Werte):
-  ```bash
-  sudo docker exec abfuhrkalender python -c "import os; p=os.environ.get('BR_PASSWORD',''); print('Länge Passwort:', len(p))"
-  ```
+Wie [oben](#allgemein-jeder-rechner-mit-docker), per SSH im Ordner `/volume1/docker/abfuhrkalender` und mit `sudo` vor `docker`. Statt `docker compose up -d --build` geht auch: im Container Manager beim Projekt „Erstellen“ (Build) und neu starten.
 
 ## Als App aufs iPhone (mit Push-Erinnerung)
 
-Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server erlaubt, muss sie über **HTTPS** mit einem gültigen Zertifikat laufen. Über `http://<NAS-IP>:8080` geht das nicht (die App funktioniert dort weiter, nur ohne diese Extras). Wir nutzen dafür **Tailscale**: Es gibt dem NAS eine feste HTTPS-Adresse (`https://<nas-name>.<tailnet>.ts.net`) mit Zertifikat, ohne dass am Router etwas freigegeben werden muss.
+Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server erlaubt, muss sie über **HTTPS** mit einem gültigen Zertifikat laufen. Über `http://<IP>:8080` geht das nicht (die App funktioniert dort weiter, nur ohne diese Extras). Wir nutzen dafür **Tailscale**: Es gibt dem Rechner eine feste HTTPS-Adresse (`https://<rechnername>.<tailnet>.ts.net`) mit Zertifikat, ohne dass am Router etwas freigegeben werden muss. Wer schon einen eigenen Reverse-Proxy mit Zertifikat hat (z. B. Caddy, Traefik, nginx), kann stattdessen den nutzen und auf Port 8080 weiterleiten.
 
-### Einmalig auf der Synology
+### Einmalig auf dem Server
 
-1. **Paket-Zentrum:** **Tailscale** installieren, öffnen und mit einem (kostenlosen) Tailscale-Konto anmelden.
+1. **Tailscale installieren** und mit einem (kostenlosen) Tailscale-Konto anmelden. Auf der Synology über das **Paket-Zentrum**, auf anderen Systemen nach der [Anleitung von Tailscale](https://tailscale.com/download) (auf Linux z. B. per Installationsskript, danach `sudo tailscale up`).
 2. In der Tailscale-Verwaltung im Browser (<https://login.tailscale.com/admin/dns>): **MagicDNS** einschalten und darunter **HTTPS Certificates** aktivieren.
-3. Per SSH auf dem NAS die App über HTTPS freigeben (leitet auf Port 8080 weiter, bleibt nach einem Neustart erhalten):
+3. Die App über HTTPS freigeben (leitet auf Port 8080 weiter, bleibt nach einem Neustart erhalten):
    ```bash
-   sudo /var/packages/Tailscale/target/bin/tailscale serve --bg 8080
+   sudo tailscale serve --bg 8080
    ```
-   Die Ausgabe zeigt die Adresse `https://<nas-name>.<tailnet>.ts.net`. Abschalten mit `… tailscale serve --https=443 off`.
-4. **Lädt die HTTPS-Adresse endlos** (bei uns beim ersten Mal passiert), während `http://<nas-name>.<tailnet>.ts.net:8080` geht: Das Zertifikat einmal von Hand holen, danach ging es sofort. Die Dateien landen in `/tmp` und werden nicht gebraucht (die `.key`-Datei ist geheim, also löschen):
+   Auf der Synology liegt das Programm nicht im Suchpfad, dort heißt der Befehl `sudo /var/packages/Tailscale/target/bin/tailscale serve --bg 8080` (gilt auch für den nächsten Schritt).
+   Die Ausgabe zeigt die Adresse `https://<rechnername>.<tailnet>.ts.net`. Abschalten mit `sudo tailscale serve --https=443 off`.
+4. **Lädt die HTTPS-Adresse endlos** (bei uns auf der Synology beim ersten Mal passiert), während `http://<rechnername>.<tailnet>.ts.net:8080` geht: Das Zertifikat einmal von Hand holen, danach ging es sofort. Die Dateien landen in `/tmp` und werden nicht gebraucht (die `.key`-Datei ist geheim, also löschen):
    ```bash
-   cd /tmp && sudo /var/packages/Tailscale/target/bin/tailscale cert <nas-name>.<tailnet>.ts.net && sudo rm <nas-name>.<tailnet>.ts.net.crt <nas-name>.<tailnet>.ts.net.key
+   cd /tmp && sudo tailscale cert <rechnername>.<tailnet>.ts.net && sudo rm <rechnername>.<tailnet>.ts.net.crt <rechnername>.<tailnet>.ts.net.key
    ```
 
 ### Auf dem iPhone (iOS 16.4 oder neuer)
 
 1. App **Tailscale** aus dem App Store installieren, mit demselben Konto anmelden, VPN einschalten.
-2. In **Safari** die Adresse `https://<nas-name>.<tailnet>.ts.net` öffnen → Teilen-Symbol (ggf. hinter „…“) → **Zum Home-Bildschirm** („Als Web-App öffnen“ anlassen).
+2. In **Safari** die Adresse `https://<rechnername>.<tailnet>.ts.net` öffnen → Teilen-Symbol (ggf. hinter „…“) → **Zum Home-Bildschirm** („Als Web-App öffnen“ anlassen).
 3. Die App über das neue Symbol öffnen → **Einstellungen** → „Erinnerung per Push“ einschalten, Mitteilungen erlauben, **Test senden**.
 
 Gut zu wissen:
 
 - Die `ts.net`-Adresse funktioniert nur, solange Tailscale auf dem iPhone an ist – zu Hause **und unterwegs**. Mit Tailscale ist die App also überall live.
-- Ist Tailscale aus oder das NAS nicht erreichbar, zeigt die App den zuletzt geladenen Stand mit einem blauen Hinweis. Aktualisieren und Einstellungen gehen dann nicht.
+- Ist Tailscale aus oder der Server nicht erreichbar, zeigt die App den zuletzt geladenen Stand mit einem blauen Hinweis. Aktualisieren und Einstellungen gehen dann nicht.
 - Push-Erinnerungen kommen immer, auch ohne Tailscale: Der Server schickt sie über Apple an das iPhone.
 - Die Uhrzeit (Standard 18 Uhr) gilt für alle Geräte; ein- und ausgeschaltet wird pro Gerät. Erinnert wird nur, wenn am nächsten Tag eine der angezeigten Müllarten abgeholt wird.
 - Jedes Gerät meldet sich einzeln an. Wird die App vom Home-Bildschirm gelöscht, entfernt der Server die Anmeldung beim nächsten Versand von selbst.
