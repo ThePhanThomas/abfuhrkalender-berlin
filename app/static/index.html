@@ -155,54 +155,82 @@
     </div>
   </footer>
 
-  <dialog id="dlg-settings">
+  <dialog id="dlg-settings" class="sheet" aria-labelledby="settings-h">
     <form method="dialog" id="settings-form">
-      <h2>Einstellungen</h2>
-      <p class="hint" id="welcome" hidden>Gib deine Berliner Adresse ein. Die Termine kommen direkt von der BSR.</p>
+      <div class="sheet-head">
+        <h2 id="settings-h">Einstellungen</h2>
+        <button type="button" class="sheet-x" id="btn-close" aria-label="Schließen">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <p class="hint welcome" id="welcome" hidden>Gib deine Berliner Adresse ein. Die Termine kommen direkt von der BSR.</p>
 
-      <fieldset>
-        <legend>Adresse</legend>
-        <div class="row">
-          <label>Straße<input id="street" autocomplete="address-line1" placeholder="Musterstraße"></label>
-          <label class="short">Nr.<input id="number" placeholder="12A"></label>
-          <button type="button" id="btn-search">Suchen</button>
+        <h3 class="sec-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Adresse</h3>
+        <div class="card">
+          <div class="srow">
+            <span class="pin"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+            <div class="grow"><div class="addr-main" id="addr-main"></div><div class="sub" id="addr-sub"></div></div>
+            <button type="button" class="link-btn" id="btn-addr-edit" aria-expanded="false" aria-controls="addr-edit">Ändern</button>
+          </div>
+          <div class="addr-edit" id="addr-edit" hidden>
+            <div class="addr-fields">
+              <label class="field">Straße<input id="street" autocomplete="address-line1" placeholder="Musterstraße"></label>
+              <label class="field nr">Nr.<input id="number" placeholder="12A"></label>
+            </div>
+            <div id="addr-results" class="results"></div>
+            <p class="error" id="addr-error"></p>
+            <p class="foot-hint" id="addr-hint">Vorschläge erscheinen beim Tippen.</p>
+          </div>
         </div>
-        <p class="hint" id="addr-current"></p>
-        <div id="addr-results" class="results"></div>
-        <p class="error" id="addr-error"></p>
-      </fieldset>
 
-      <fieldset>
-        <legend>Angezeigte Müllarten</legend>
-        <div id="cats" class="cats"></div>
-      </fieldset>
+        <h3 class="sec-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>Angezeigte Müllarten</h3>
+        <div id="cats" class="cat-tiles"></div>
+        <p class="foot-hint">Laubtonne und Weihnachtsbaum gibt es nicht überall.</p>
 
-      <fieldset>
-        <legend>Papier (Berlin Recycling)</legend>
-        <label class="radio"><input type="radio" name="paper" value="portal"> Aus dem Kundenportal abrufen</label>
-        <p class="hint" id="portal-hint"></p>
-        <label class="radio"><input type="radio" name="paper" value="manual"> Turnus selbst angeben</label>
-        <div class="row indent" id="manual-row">
-          <label>Eine bekannte Abholung<input type="date" id="first-date"></label>
-          <label class="short">alle … Wochen<input type="number" id="interval" min="1" max="12" value="4"></label>
+        <h3 class="sec-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Papier (Berlin Recycling)</h3>
+        <div class="card">
+          <div id="paper-on">
+            <div class="seg" role="radiogroup" aria-label="Woher kommen die Papiertermine?">
+              <label><input type="radio" name="paper" value="portal"><span>Kundenportal</span></label>
+              <label><input type="radio" name="paper" value="manual"><span>Eigener Turnus</span></label>
+            </div>
+            <div class="pane" id="portal-row"><p class="status-box" id="portal-hint"></p></div>
+            <div class="pane pp-row" id="manual-row">
+              <label class="field">Eine bekannte Abholung<input type="date" id="first-date"></label>
+              <div class="field stepper-field">Abstand
+                <div class="stepper">
+                  <button type="button" id="interval-down" aria-label="Weniger Wochen">−</button>
+                  <label class="stepper-val">alle <input type="number" id="interval" min="1" max="12" value="4" inputmode="numeric"> Wo.</label>
+                  <button type="button" id="interval-up" aria-label="Mehr Wochen">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="off-note" id="paper-off">Papier ist oben ausgeschaltet. Tippe auf die Kachel „Papier“, um es wieder anzuzeigen.</p>
         </div>
-        <label class="radio"><input type="radio" name="paper" value="off"> Kein Papier anzeigen</label>
-      </fieldset>
 
-      <fieldset>
-        <legend>Erinnerung per Push</legend>
-        <label class="radio"><input type="checkbox" id="push-on"> Auf diesem Gerät am Vorabend erinnern</label>
-        <p class="hint" id="push-hint"></p>
-        <p class="error" id="push-error"></p>
-        <div class="row">
-          <label class="short">Uhrzeit<input type="time" id="notify-time" value="18:00" step="300"></label>
-          <button type="button" id="btn-push-test" hidden>Test senden</button>
+        <h3 class="sec-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg>Erinnerung</h3>
+        <div class="card">
+          <label class="srow">
+            <span class="grow"><span class="t">Push am Vorabend</span><span class="sub">auf diesem Gerät</span></span>
+            <span class="badge">wirkt sofort</span>
+            <input type="checkbox" class="switch" role="switch" id="push-on">
+          </label>
+          <p class="status-box info" id="push-hint" hidden></p>
+          <p class="error pad" id="push-error"></p>
+          <label class="srow">
+            <span class="grow"><span class="t">Uhrzeit</span><span class="sub">für alle Geräte</span></span>
+            <input type="time" id="notify-time" value="18:00" step="300">
+          </label>
+          <div class="srow" id="push-test-row" hidden>
+            <span class="grow"><span class="t">Probe-Mitteilung</span><span class="sub">kommt in wenigen Sekunden</span></span>
+            <button type="button" class="link-btn" id="btn-push-test">Senden</button>
+          </div>
         </div>
-        <p class="hint">Die Uhrzeit gilt für alle Geräte und wird mit „Speichern“ übernommen. Ein- und Ausschalten wirkt sofort und nur auf diesem Gerät.</p>
-      </fieldset>
-
-      <p class="error" id="settings-error"></p>
-      <div class="dlg-actions">
+      </div>
+      <div class="sheet-foot">
+        <p class="error" id="settings-error"></p>
         <button type="button" id="btn-cancel">Abbrechen</button>
         <button type="submit" class="primary" id="btn-save">Speichern</button>
       </div>

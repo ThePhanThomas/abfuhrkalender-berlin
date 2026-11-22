@@ -206,16 +206,27 @@ function renderMonths() {
         : "";
       g += `<div class="${cls}"${attrs}>${d}</div>`;
     }
+    // Immer sechs Wochenzeilen, damit alle Monatskarten gleich hoch sind
+    const lead = (first.getDay() + 6) % 7;
+    g += '<div class="day pad" aria-hidden="true"></div>'.repeat(42 - lead - days);
     const isCur = selectedYear === now.getFullYear() && m === now.getMonth();
     const isDone = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && m < now.getMonth());
     const isEarlier = isDone && selectedYear === now.getFullYear();
-    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}${isEarlier ? " earlier" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
+    const section = `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}${isEarlier ? " earlier" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
+    // Im laufenden Jahr liegen die vergangenen Monate als Stapel unter dem laufenden Monat.
+    html += isCur && m > 0 ? `<div class="cur-wrap">
+      <div class="stack-box">
+        <button type="button" class="stack" id="stack" tabindex="-1" aria-hidden="true"><span class="layer l2"></span><span class="layer l1"></span></button>
+        ${section}
+      </div>
+      <button type="button" class="stack-label" id="stack-label" aria-expanded="false">${m === 1 ? MONTHS[0] : `${MONTHS[0]} – ${MONTHS[m - 1]}`}
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>` : section;
   }
-  // Im laufenden Jahr sind vergangene Monate eingeklappt; eine Zeile davor blendet sie ein.
   const earlier = selectedYear === now.getFullYear() ? now.getMonth() : 0;
   if (earlier > 0) {
     const range = earlier === 1 ? MONTHS[0] : `${MONTHS[0]} – ${MONTHS[earlier - 1]}`;
-    html = `<button type="button" class="ghost earlier-toggle" id="earlier-toggle" aria-expanded="false" data-range="${range}"></button>` + html;
+    html = `<button type="button" class="ghost earlier-toggle" id="earlier-toggle">${range} einklappen</button>` + html;
   }
   dayIndex = byDay;
   hideTip();
@@ -224,51 +235,75 @@ function renderMonths() {
   renderPlanner(byDay);
 }
 
-let earlierRun = 0; // zählt Umschaltungen, damit eine laufende Ausblend-Animation nicht später dazwischenfunkt
+// Vergangene Monate auf- und zuklappen. Animiert sieht es aus, als würden die Karten unter dem
+// laufenden Monat hervor ausgeteilt bzw. wieder daruntergeschoben (FLIP: vorher/nachher messen).
+let earlierGhosts = [];
+const STACK_TUCK = 10; // so viele Pixel rutschen die Karten unter den laufenden Monat (dort schauen die Kanten hervor)
 
 function setEarlier(show, animate = false) {
   showEarlier = show;
-  const run = ++earlierRun;
-  const btn = $("earlier-toggle");
   const months = $("months");
-  btn.setAttribute("aria-expanded", String(show));
-  btn.textContent = `${btn.dataset.range} ${show ? "ausblenden" : "anzeigen"}`;
-  const earlier = [...months.querySelectorAll(".month.earlier")];
-  earlier.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+  // Eine noch laufende Animation sofort beenden, damit sich nichts überlagert
+  months.querySelectorAll(".month, .stack").forEach((el) => el.getAnimations().forEach((a) => a.finish()));
+  earlierGhosts.forEach((g) => g.remove());
+  earlierGhosts = [];
+  $("stack-label")?.setAttribute("aria-expanded", String(show));
   if (!animate || !months.animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     months.classList.toggle("show-earlier", show);
     return;
   }
   const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
-  // Die übrigen Monate gleiten an ihren neuen Platz statt zu springen (FLIP: vorher/nachher messen).
-  const slide = (change, duration) => {
-    const others = [...months.querySelectorAll(".month:not(.earlier)")];
-    const before = others.map((el) => el.getBoundingClientRect());
-    change();
-    others.forEach((el, i) => {
-      const after = el.getBoundingClientRect();
-      const dx = before[i].left - after.left, dy = before[i].top - after.top;
-      if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration, easing: ease });
-    });
-  };
+  const center = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + scrollX + r.width / 2, y: r.top + scrollY + r.height / 2, r }; };
+  const earlier = [...months.querySelectorAll(".month.earlier")];
+  const others = [...months.querySelectorAll(".month:not(.earlier)")];
+  const cur = months.querySelector(".month.cur");
+  const before = others.map(center);
+  const n = earlier.length;
+  const slideOthers = (duration) => others.forEach((el, i) => {
+    const a = center(el);
+    const dx = before[i].x - a.x, dy = before[i].y - a.y;
+    if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration, easing: ease });
+  });
+
   if (show) {
-    slide(() => months.classList.add("show-earlier"), 320);
+    const pile = before[others.indexOf(cur)];
+    months.classList.add("show-earlier");
+    slideOthers(460);
+    // Austeilen: der jüngste Monat zuerst, Januar zuletzt
     earlier.forEach((el, i) => {
-      el.animate(
-        [{ opacity: 0, transform: "translateY(-10px) scale(0.97)" }, { opacity: getComputedStyle(el).opacity, transform: "none" }],
-        { duration: 280, delay: i * 22, easing: ease, fill: "backwards" },
-      );
+      const a = center(el);
+      el.animate([
+        { transform: `translate(${pile.x - a.x}px, ${pile.y - a.y + STACK_TUCK}px) scale(.96)`, opacity: 0 },
+        { opacity: getComputedStyle(el).opacity, offset: 0.2 },
+        { transform: "none" },
+      ], { duration: 480, delay: (n - 1 - i) * 28, easing: ease, fill: "backwards" });
     });
   } else {
-    const n = earlier.length;
-    const out = earlier.map((el, i) => el.animate(
-      [{ opacity: getComputedStyle(el).opacity, transform: "none" }, { opacity: 0, transform: "translateY(-8px) scale(0.97)" }],
-      { duration: 110, delay: (n - 1 - i) * 5, easing: "ease-in", fill: "forwards" },
-    ).finished);
-    Promise.all(out).then(() => {
-      if (run !== earlierRun) return;
-      slide(() => months.classList.remove("show-earlier"), 220);
-      earlier.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    // Kopien an der jetzigen Stelle gleiten unter den laufenden Monat, während der an seinen Platz rutscht
+    const opacity = earlier.length ? getComputedStyle(earlier[0]).opacity : "1";
+    const ghosts = earlier.map((el) => {
+      const c = center(el), g = el.cloneNode(true);
+      g.classList.add("month-ghost");
+      g.setAttribute("aria-hidden", "true");
+      g.inert = true;
+      Object.assign(g.style, { left: `${c.r.left + scrollX}px`, top: `${c.r.top + scrollY}px`, width: `${c.r.width}px`, height: `${c.r.height}px` });
+      return { g, c };
+    });
+    months.classList.remove("show-earlier");
+    ghosts.forEach(({ g }) => document.body.appendChild(g));
+    earlierGhosts = ghosts.map(({ g }) => g);
+    const pile = center(cur); // messen, bevor der laufende Monat animiert wird
+    slideOthers(440);
+    const done = ghosts.map(({ g, c }, i) => g.animate([
+      { transform: "none", opacity },
+      { opacity, offset: 0.7 },
+      { transform: `translate(${pile.x - c.x}px, ${pile.y - c.y + STACK_TUCK}px) scale(.96)`, opacity: 0 },
+    ], { duration: 440, delay: (n - 1 - i) * 22, easing: ease, fill: "both" }).finished);
+    $("stack")?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 300, fill: "backwards" });
+    const mine = earlierGhosts;
+    Promise.all(done).then(() => {
+      mine.forEach((g) => g.remove());
+      if (earlierGhosts === mine) earlierGhosts = [];
     }).catch(() => { /* abgebrochen durch erneutes Umschalten */ });
   }
 }
@@ -448,52 +483,108 @@ function openSettings() {
   const cfg = state.config;
   pendingAddress = cfg.address;
   $("welcome").hidden = !!cfg.address;
-  $("addr-current").textContent = cfg.address ? `Aktuell: ${cfg.address.label}` : "";
+  showAddress();
+  setAddrEdit(!cfg.address);
+  $("street").value = "";
+  $("number").value = "";
   $("addr-results").innerHTML = "";
   $("addr-error").textContent = "";
   $("settings-error").textContent = "";
-  $("cats").innerHTML = Object.entries(state.categories).map(([code, name]) =>
-    `<label class="radio"><input type="checkbox" value="${code}" ${cfg.categories.includes(code) ? "checked" : ""}>
-      <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c-${code})"></span>${esc(name)}</label>`).join("");
+  // Papier zählt nur als angezeigt, wenn es auch eine Quelle hat ("off" = aus)
   const mode = cfg.paper.mode;
-  document.querySelectorAll('input[name="paper"]').forEach((r) => { r.checked = r.value === mode; });
+  const shown = new Set(cfg.categories.filter((c) => c !== "PP" || mode !== "off"));
+  $("cats").innerHTML = Object.entries(state.categories).map(([code, name]) =>
+    `<label class="cat-tile" style="--c: var(--c-${code})">
+      <input type="checkbox" value="${code}" ${shown.has(code) ? "checked" : ""}>
+      <span class="sym">${catIcon(code)}</span><span class="name">${esc(name)}</span>
+      <span class="tick" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+    </label>`).join("");
+  const paperMode = mode === "off" ? (state.portal_configured ? "portal" : "manual") : mode;
+  document.querySelectorAll('input[name="paper"]').forEach((r) => { r.checked = r.value === paperMode; });
   $("portal-hint").textContent = state.portal_configured
     ? "Zugangsdaten sind auf dem Server hinterlegt."
     : "Dafür müssen BR_USERNAME und BR_PASSWORD in der .env-Datei auf dem Server stehen.";
+  $("portal-hint").classList.toggle("info", !state.portal_configured);
   $("first-date").value = cfg.paper.first_date || "";
   $("interval").value = cfg.paper.interval_weeks || 4;
-  updateManualRow();
+  updatePaper();
   $("notify-time").value = cfg.notify_time || "18:00";
   $("dlg-settings").showModal();
+  $("dlg-settings").querySelector(".sheet-body").scrollTop = 0;
+  if (!cfg.address) $("street").focus();
   renderPush();
 }
 
-function updateManualRow() {
+// Adresse in der Karte: Straße groß, Rest (PLZ, Ort) darunter
+function showAddress() {
+  const label = pendingAddress?.label || "";
+  const i = label.indexOf(",");
+  $("addr-main").textContent = label ? (i > 0 ? label.slice(0, i) : label) : "Noch keine Adresse";
+  $("addr-sub").textContent = i > 0 ? label.slice(i + 1).trim() : (label ? "" : "Bitte suchen und auswählen");
+}
+
+function setAddrEdit(open) {
+  $("addr-edit").hidden = !open;
+  $("btn-addr-edit").textContent = open ? "Fertig" : "Ändern";
+  $("btn-addr-edit").setAttribute("aria-expanded", String(open));
+  $("btn-addr-edit").hidden = open && !state.config.address && !pendingAddress;
+}
+
+function updatePaper() {
+  const on = !!$("cats").querySelector('input[value="PP"]')?.checked;
+  $("paper-on").hidden = !on;
+  $("paper-off").hidden = on;
   const manual = document.querySelector('input[name="paper"]:checked')?.value === "manual";
-  $("manual-row").style.display = manual ? "" : "none";
+  $("manual-row").hidden = !manual;
+  $("portal-row").hidden = manual;
+}
+
+function stepInterval(delta) {
+  const v = Math.min(12, Math.max(1, (Number($("interval").value) || 4) + delta));
+  $("interval").value = v;
+}
+
+// Vorschläge beim Tippen: kurz warten, bis die Eingabe ruht; ältere Antworten verwerfen.
+let searchTimer = null;
+let searchRun = 0;
+function scheduleSearch(delay = 450) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(searchAddress, delay);
 }
 
 async function searchAddress() {
+  clearTimeout(searchTimer);
   const street = $("street").value.trim();
   const number = $("number").value.trim();
   $("addr-error").textContent = "";
-  $("addr-results").innerHTML = "";
-  if (!street || !number) { $("addr-error").textContent = "Straße und Hausnummer eingeben."; return; }
-  $("btn-search").disabled = true;
+  if (street.length < 3 || !number) {
+    $("addr-results").innerHTML = "";
+    $("addr-hint").hidden = false;
+    return;
+  }
+  const run = ++searchRun;
   try {
     const results = await api(`/api/address/search?street=${encodeURIComponent(street)}&number=${encodeURIComponent(number)}`);
-    if (!results.length) { $("addr-error").textContent = "Keine Adresse gefunden. Schreibweise prüfen."; return; }
-    $("addr-results").innerHTML = results.map((r, i) => `<button type="button" data-i="${i}">${esc(r.label)}</button>`).join("");
+    if (run !== searchRun) return;
+    $("addr-hint").hidden = true;
+    if (!results.length) { $("addr-results").innerHTML = ""; $("addr-error").textContent = "Keine Adresse gefunden. Schreibweise prüfen."; return; }
+    const pin = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+    const check = '<svg class="ic chk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    $("addr-results").innerHTML = results.map((r, i) => {
+      const j = r.label.indexOf(",");
+      const main = j > 0 ? r.label.slice(0, j) : r.label;
+      const rest = j > 0 ? r.label.slice(j + 1).trim() : "";
+      const sel = pendingAddress && pendingAddress.label === r.label;
+      return `<button type="button" data-i="${i}" aria-pressed="${!!sel}">${pin}<span class="grow">${esc(main)}${rest ? `<span class="sub">${esc(rest)}</span>` : ""}</span>${check}</button>`;
+    }).join("");
     $("addr-results").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       pendingAddress = results[Number(b.dataset.i)];
-      $("addr-results").querySelectorAll("button").forEach((x) => x.classList.toggle("selected", x === b));
-      $("addr-current").textContent = `Ausgewählt: ${pendingAddress.label}`;
+      $("addr-results").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      showAddress();
+      $("btn-addr-edit").hidden = false;
     }));
-    if (results.length === 1) $("addr-results").querySelector("button").click();
   } catch (e) {
-    $("addr-error").textContent = e.message;
-  } finally {
-    $("btn-search").disabled = false;
+    if (run === searchRun) $("addr-error").textContent = e.message;
   }
 }
 
@@ -503,7 +594,8 @@ async function saveSettings(ev) {
   if (!pendingAddress) { $("settings-error").textContent = "Bitte eine Adresse suchen und auswählen."; return; }
   const categories = [...$("cats").querySelectorAll("input:checked")].map((i) => i.value);
   if (!categories.length) { $("settings-error").textContent = "Mindestens eine Müllart auswählen."; return; }
-  const mode = document.querySelector('input[name="paper"]:checked')?.value || "off";
+  // Papier ausgeschaltet = keine Papierquelle abfragen
+  const mode = categories.includes("PP") ? (document.querySelector('input[name="paper"]:checked')?.value || "portal") : "off";
   const paper = { mode, first_date: $("first-date").value || null, interval_weeks: Number($("interval").value) || 4 };
   if (mode === "manual" && !paper.first_date) { $("settings-error").textContent = "Datum einer bekannten Papier-Abholung angeben."; return; }
   $("btn-save").disabled = true;
@@ -554,9 +646,10 @@ async function renderPush() {
   else if (Notification.permission === "denied") why = "Mitteilungen sind für diese App blockiert. In den Einstellungen des Geräts unter „Mitteilungen“ erlauben.";
   box.disabled = !!why || offlineSince !== null;
   hint.textContent = why;
+  hint.hidden = !why;
   const sub = why ? null : await currentPushSub().catch(() => null);
   box.checked = !!sub;
-  $("btn-push-test").hidden = !sub;
+  $("push-test-row").hidden = !sub;
 }
 
 async function togglePush() {
@@ -595,11 +688,11 @@ async function testPush() {
     const sub = await currentPushSub();
     if (!sub) throw new Error("Auf diesem Gerät sind Erinnerungen nicht eingeschaltet.");
     await api("/api/push/test", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
-    btn.textContent = "Gesendet";
+    btn.textContent = "Gesendet ✓";
   } catch (e) {
     $("push-error").textContent = e.message;
   } finally {
-    setTimeout(() => { btn.textContent = "Test senden"; btn.disabled = false; }, 1500);
+    setTimeout(() => { btn.textContent = "Senden"; btn.disabled = false; }, 1500);
   }
 }
 
@@ -666,15 +759,27 @@ async function init() {
     renderYears();
     renderMonths();
   };
-  $("months").addEventListener("click", (e) => { if (e.target.closest("#earlier-toggle")) setEarlier(!showEarlier, true); });
+  $("months").addEventListener("click", (e) => {
+    if (e.target.closest("#stack, #stack-label")) setEarlier(true, true);
+    else if (e.target.closest("#earlier-toggle")) setEarlier(false, true);
+  });
   $("year-prev").addEventListener("click", () => stepYear(-1));
   $("year-next").addEventListener("click", () => stepYear(1));
-  $("btn-search").addEventListener("click", searchAddress);
+  $("btn-addr-edit").addEventListener("click", () => {
+    const open = $("addr-edit").hidden;
+    setAddrEdit(open);
+    if (open) $("street").focus();
+  });
+  ["street", "number"].forEach((id) => $(id).addEventListener("input", () => scheduleSearch()));
   $("number").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(); } });
   $("street").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("number").focus(); } });
   $("settings-form").addEventListener("submit", saveSettings);
   $("btn-cancel").addEventListener("click", () => $("dlg-settings").close());
-  document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updateManualRow));
+  $("btn-close").addEventListener("click", () => $("dlg-settings").close());
+  $("cats").addEventListener("change", updatePaper);
+  document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updatePaper));
+  $("interval-down").addEventListener("click", () => stepInterval(-1));
+  $("interval-up").addEventListener("click", () => stepInterval(1));
   $("push-on").addEventListener("change", togglePush);
   $("btn-push-test").addEventListener("click", testPush);
 
