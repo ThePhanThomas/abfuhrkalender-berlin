@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 let state = null;
 let selectedYear = null;
 let pendingAddress = null;
+let availableYears = [];
 
 // ---------- helpers ----------
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -38,7 +39,7 @@ function visiblePickups() {
 // ---------- rendering ----------
 function render() {
   const cfg = state.config;
-  $("address").textContent = cfg.address ? cfg.address.label : "Adresse einrichten";
+  $("address-label").textContent = cfg.address ? cfg.address.label : "Adresse einrichten";
   renderStatus();
   renderYears();
   renderNext();
@@ -71,7 +72,11 @@ function renderYears() {
   state.pickups.forEach((p) => years.add(Number(p.date.slice(0, 4))));
   const sorted = [...years].sort();
   if (!selectedYear || !years.has(selectedYear)) selectedYear = new Date().getFullYear();
-  $("year").innerHTML = sorted.map((y) => `<option ${y === selectedYear ? "selected" : ""}>${y}</option>`).join("");
+  availableYears = sorted;
+  $("year").textContent = selectedYear;
+  $("print-year").textContent = selectedYear;
+  $("year-prev").disabled = selectedYear <= sorted[0];
+  $("year-next").disabled = selectedYear >= sorted[sorted.length - 1];
   document.title = `Abfuhrkalender ${selectedYear}`;
 }
 
@@ -222,7 +227,8 @@ async function refresh() {
   if (!state.config.address) { openSettings(); return; }
   const btn = $("btn-refresh");
   btn.disabled = true;
-  btn.textContent = "Lade…";
+  btn.classList.add("busy");
+  $("btn-refresh-label").textContent = "Lade…";
   try {
     state = await api("/api/refresh", { method: "POST" });
     render();
@@ -231,7 +237,8 @@ async function refresh() {
     $("banner").textContent = e.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = "Daten aktualisieren";
+    btn.classList.remove("busy");
+    $("btn-refresh-label").textContent = "Aktualisieren";
   }
 }
 
@@ -247,7 +254,15 @@ async function init() {
     catch { $("ics-url").select(); }
     setTimeout(() => { $("btn-copy").textContent = "Kopieren"; }, 1500);
   });
-  $("year").addEventListener("change", (e) => { selectedYear = Number(e.target.value); renderYears(); renderMonths(); });
+  const stepYear = (delta) => {
+    const i = availableYears.indexOf(selectedYear) + delta;
+    if (i < 0 || i >= availableYears.length) return;
+    selectedYear = availableYears[i];
+    renderYears();
+    renderMonths();
+  };
+  $("year-prev").addEventListener("click", () => stepYear(-1));
+  $("year-next").addEventListener("click", () => stepYear(1));
   $("btn-search").addEventListener("click", searchAddress);
   $("number").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(); } });
   $("street").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("number").focus(); } });

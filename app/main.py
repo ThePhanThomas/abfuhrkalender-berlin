@@ -56,6 +56,16 @@ app = FastAPI(title="Abfuhrkalender", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
+@app.middleware("http")
+async def no_stale_assets(request, call_next):
+    """Without Cache-Control browsers cache HTML/CSS/JS heuristically and may
+    combine a new page with old CSS/JS after an update. "no-cache" makes them
+    revalidate every time (cheap thanks to ETag/Last-Modified)."""
+    response = await call_next(request)
+    response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
+
 class Address(BaseModel):
     key: str = Field(min_length=5)
     label: str
