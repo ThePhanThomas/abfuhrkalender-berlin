@@ -123,3 +123,16 @@ def test_store_defaults_merge(tmp_data):
     cfg = store.load_config()
     assert cfg["categories"] == ["HM"]
     assert cfg["paper"]["mode"] == "off"
+
+
+def test_glas_and_sonstiges_not_offered(api):
+    """Glas and Sonstiges have no reliable source, so they are not selectable."""
+    cats = api.get("/api/state").json()["categories"]
+    assert "GL" not in cats and "SO" not in cats
+    body = {"address": ADDRESS, "categories": ["HM", "GL"], "paper": {"mode": "off"}}
+    assert api.put("/api/config", json=body).status_code == 422
+
+
+def test_old_config_drops_removed_categories(tmp_data):
+    (tmp_data / "config.json").write_text('{"categories": ["HM", "GL", "SO"]}', encoding="utf-8")
+    assert store.load_config()["categories"] == ["HM"]

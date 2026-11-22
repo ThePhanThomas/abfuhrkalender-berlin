@@ -1,4 +1,4 @@
-"""Manual rhythm for Papier (fallback for tenants without portal access).
+"""Manual schedule (Turnus) for Papier (fallback for tenants without portal access).
 
 Generates dates from a start date and an interval in weeks. Holiday shifts are
 not applied, so these dates are marked as computed.
