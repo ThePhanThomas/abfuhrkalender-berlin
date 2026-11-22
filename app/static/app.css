@@ -235,7 +235,7 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .moved-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 
 /* Monate */
-.months { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.months { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: end; } /* alle Karten gleich hoch; unten bündig, damit Text und Kanten über dem laufenden Monat die Reihe nicht verschieben */
 @media (max-width: 1000px) { .months { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .months { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .months { grid-template-columns: minmax(0, 1fr); } }
@@ -244,17 +244,17 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .month.cur { outline: 1.5px solid var(--accent-strong); outline-offset: -1.5px; }
 .month.done { opacity: 0.62; }
 .months:not(.show-earlier) .month.earlier { display: none; }
-/* Eingeklappt: zwei Kanten unter dem laufenden Monat, darunter „Januar – Oktober“ */
+/* Eingeklappt: „Januar – Oktober“ und darunter zwei Kanten, die oben hinter dem laufenden Monat hervorschauen */
 .months .month { position: relative; z-index: 2; } /* über den Karten, die beim Einklappen daruntergleiten */
 .stack-box { position: relative; }
 .stack { position: absolute; inset: 0; z-index: 2; border: 0; padding: 0; min-height: 0; background: none; border-radius: 18px; cursor: pointer; }
 .stack:hover { background: none; }
-.stack .layer { position: absolute; top: 0; border-radius: 18px; box-shadow: var(--shadow); transition: transform .25s ease; }
-.stack .l1 { left: 9px; right: 9px; bottom: -8px; background: var(--stack-1); }
-.stack .l2 { left: 18px; right: 18px; bottom: -16px; background: var(--stack-2); }
-.stack:hover .l1, .cur-wrap:has(.stack-label:hover) .l1 { transform: translateY(2px); }
-.stack:hover .l2, .cur-wrap:has(.stack-label:hover) .l2 { transform: translateY(4px); }
-.stack-label { display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%; margin-top: 22px; padding: 2px 0; min-height: 0; border: 0; background: none; font-size: 13px; color: var(--text-3); }
+.stack .layer { position: absolute; bottom: 0; border-radius: 18px; box-shadow: var(--shadow); transition: transform .25s ease; }
+.stack .l1 { left: 9px; right: 9px; top: -8px; background: var(--stack-1); }
+.stack .l2 { left: 18px; right: 18px; top: -16px; background: var(--stack-2); }
+.stack:hover .l1, .cur-wrap:has(.stack-label:hover) .l1 { transform: translateY(-2px); }
+.stack:hover .l2, .cur-wrap:has(.stack-label:hover) .l2 { transform: translateY(-4px); }
+.stack-label { display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%; margin: 0 0 16px; padding: 6px 0; min-height: 0; border: 0; background: none; font-size: 14px; color: var(--text-2); }
 .stack-label:hover { background: none; color: var(--accent); }
 .stack-label .ic { width: 14px; height: 14px; }
 .months.show-earlier .stack, .months.show-earlier .stack-label { display: none; }
