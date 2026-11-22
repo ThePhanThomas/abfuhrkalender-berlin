@@ -32,7 +32,7 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | Papier: Kundenportal **oder** selbst angegebener Rhythmus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
-| Druckansicht A4 quer, helles/dunkles Design, Handy-Layout | `app/static/app.css` |
+| Druckansicht: ganzes Jahr auf **einer** A4-Seite hochkant (Kühlschrank), Fußzeile mit Berliner Skyline; helles/dunkles Design, Handy-Layout | `app/static/app.css` (`@media print`), Fußzeile in `index.html` |
 | Docker-Setup für Synology | `Dockerfile`, `docker-compose.yml` |
 | Tests (29, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
@@ -44,6 +44,7 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | #1 | Abruf bei Berlin Recycling repariert (fehlender Zwischenschritt beim Login), vergangene Papiertermine behalten, lokaler Server liest `.env` |
 | #2 | Kopfzeile neu gestaltet; `Cache-Control: no-cache`, damit Browser nach Updates keine alten CSS/JS-Dateien verwenden |
 | #3 | Info-Kasten für Abholtage |
+| #5 | Druckansicht auf eine A4-Seite hochkant gebracht, Berliner Skyline als Fußzeile |
 
 ## Offene Punkte
 
@@ -52,7 +53,7 @@ In etwa nach Wichtigkeit:
 1. **Einsatz auf der Synology.** Anleitung steht im README. Der **Docker-Build ist noch nie gelaufen** (auf dem Entwicklungs-Mac ist kein Docker installiert). Beim ersten Build auf dem NAS auf Fehler achten.
 2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
 3. **Nicht geprüft:**
-   - Druckvorschau im Browser (nur per CSS umgesetzt).
+   - Druckvorschau in Safari/Firefox (geprüft nur Chrome: genau 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 4. **Kleinigkeiten:**
@@ -86,4 +87,5 @@ In etwa nach Wichtigkeit:
 - **Browser-Cache:** Ohne `Cache-Control` hat ein Browser neue HTML-Seite mit alten CSS/JS kombiniert – sah völlig kaputt aus. Ist behoben (Middleware in `app/main.py`); bei Problemen nach einem Update trotzdem zuerst mit Cmd+Shift+R neu laden.
 - **Tests und echte Webcalls:** `refresh.run()` ohne `client=` erzeugt einen echten HTTP-Client. In Tests immer den Mock-Client aus `conftest.py` übergeben.
 - **Antippen auf dem Handy:** Ein Tipp löst erst `focusin`, dann `click` aus. Ob der Kasten schon offen war, wird deshalb bei `pointerdown` gemerkt (`initTooltip`).
+- **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.
