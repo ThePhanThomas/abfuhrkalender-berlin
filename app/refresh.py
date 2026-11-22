@@ -44,19 +44,30 @@ def _run(client: httpx.Client, today: date | None) -> dict:
     cfg = store.load_config()
     data = store.load_data()
     sources = data.setdefault("sources", {})
+    today = today or date.today()
     start, end = date_range(today)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    def attempt(name: str, fn):
+    def attempt(name: str, fn, keep_past: bool = False):
+        """keep_past: the source only returns upcoming dates (Berlin Recycling
+        portal), so past dates from earlier fetches are kept to fill the year."""
         prev = sources.get(name, {})
         try:
-            pickups = fn()
+            pickups = [p.to_dict() for p in fn()]
+            if keep_past:
+                fetched = {(p["date"], p["category"]) for p in pickups}
+                kept = [
+                    p
+                    for p in prev.get("pickups", [])
+                    if start.isoformat() <= p["date"] < today.isoformat() and (p["date"], p["category"]) not in fetched
+                ]
+                pickups = sorted(kept + pickups, key=lambda p: (p["date"], p["category"]))
             sources[name] = {
                 "ok": True,
                 "error": None,
                 "fetched_at": now,
                 "count": len(pickups),
-                "pickups": [p.to_dict() for p in pickups],
+                "pickups": pickups,
             }
         except SourceError as e:
             sources[name] = {**prev, "ok": False, "error": str(e), "fetched_at": now}
@@ -76,6 +87,7 @@ def _run(client: httpx.Client, today: date | None) -> dict:
             lambda: berlin_recycling.fetch_pickups(
                 client, os.environ.get("BR_USERNAME", ""), os.environ.get("BR_PASSWORD", "")
             ),
+            keep_past=True,
         )
     elif mode == "manual" and paper.get("first_date"):
         sources.pop("berlin_recycling", None)
