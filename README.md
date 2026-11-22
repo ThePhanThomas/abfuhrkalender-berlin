@@ -31,16 +31,19 @@ Tests:
 
 ## Betrieb auf der Synology (Container Manager)
 
-Getestet für DSM 7.2+ mit dem Paket **Container Manager**.
+Gedacht für DSM 7.2+ mit dem Paket **Container Manager**.
 
 1. In der File Station einen Ordner anlegen, z. B. `/docker/abfuhrkalender`.
 2. Den Inhalt dieses Repos dorthin kopieren (oder per SSH `git clone`).
-3. Dort `.env.example` nach `.env` kopieren und ausfüllen (Zugangsdaten Berlin Recycling, falls gewünscht).
-4. Container Manager → **Projekt** → **Erstellen**:
+3. Darin mit der File Station den Unterordner `data` anlegen. Wichtig: selbst anlegen, sonst legt Docker ihn mit Administrator-Rechten an und die App kann dort nicht speichern.
+4. Dort `.env.example` nach `.env` kopieren und ausfüllen:
+   - Zugangsdaten Berlin Recycling, falls gewünscht.
+   - `PUID`/`PGID`: Benutzer- und Gruppennummer deines NAS-Benutzers, dem der Ordner `data` gehört. Herausfinden per SSH mit dem Befehl `id` (Ausgabe z. B. `uid=1026(…) gid=100(users)` → `PUID=1026`, `PGID=100`). Ohne SSH: in der Systemsteuerung unter **Aufgabenplaner** eine einmalige „Benutzerdefiniertes Skript“-Aufgabe als dein Benutzer anlegen mit `id > /volume1/docker/abfuhrkalender/id.txt`, ausführen, Datei ansehen, Aufgabe und Datei wieder löschen.
+5. Container Manager → **Projekt** → **Erstellen**:
    - Projektname: `abfuhrkalender`
    - Pfad: der Ordner aus Schritt 1
    - Quelle: „Vorhandene docker-compose.yml verwenden“
-5. Projekt starten. Die App ist danach unter `http://<NAS-IP>:8080` erreichbar.
+6. Projekt starten. Die App ist danach unter `http://<NAS-IP>:8080` erreichbar.
 
 Die Termine und Einstellungen liegen im Unterordner `data/` und überleben Updates.
 
@@ -53,6 +56,7 @@ Die Termine und Einstellungen liegen im Unterordner `data/` und überleben Updat
 | `BR_USERNAME`, `BR_PASSWORD` | Login Kundenportal Berlin Recycling (nur für Papier-Modus „Kundenportal“) |
 | `REFRESH_INTERVAL_HOURS` | Automatischer Abruf in Stunden, `0` = nur per Button (Standard `168`) |
 | `DATA_DIR` | Speicherort für `config.json`/`pickups.json` (Standard `data`, im Container `/data`) |
+| `PUID`, `PGID` | Benutzer-/Gruppennummer, unter der der Container läuft; muss zum Besitzer von `data/` passen (Standard `1000`) |
 
 ## Datenquellen
 
