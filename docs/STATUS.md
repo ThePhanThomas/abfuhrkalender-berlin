@@ -47,6 +47,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #3 | Info-Kasten für Abholtage |
 | #5 | Druckansicht als Jahresplaner auf einer A4-Seite quer (zum Eintragen), Berliner Feiertage, Skyline als Fußzeile |
 | #6 | Benutzernummer für den Container per `.env` (`PUID`/`PGID`), damit die App auf der Synology in `data/` schreiben darf |
+| #8 | Drucken auf dem iPhone: Kalender passt wieder auf eine Seite (vorher 2 Seiten im Querformat) |
 | #7 | Erster Einsatz auf der Synology: README-Anleitung mit Deploy-Key, `$$` im Passwort, Hinweise zum Container Manager |
 
 ## Offene Punkte
@@ -56,7 +57,7 @@ In etwa nach Wichtigkeit:
 1. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
 2. **Nicht geprüft:**
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
-   - Druckvorschau in Safari/Firefox (geprüft nur Chrome: genau 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
+   - Druckvorschau in Safari/Firefox am Mac (geprüft: Chrome mit Rand 0 bis 20 mm und Safari auf dem iPhone, Quer- und Hochformat: je 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
@@ -95,5 +96,6 @@ In etwa nach Wichtigkeit:
 - **Browser-Cache:** Ohne `Cache-Control` hat ein Browser neue HTML-Seite mit alten CSS/JS kombiniert – sah völlig kaputt aus. Ist behoben (Middleware in `app/main.py`); bei Problemen nach einem Update trotzdem zuerst mit Cmd+Shift+R neu laden.
 - **Tests und echte Webcalls:** `refresh.run()` ohne `client=` erzeugt einen echten HTTP-Client. In Tests immer den Mock-Client aus `conftest.py` übergeben.
 - **Antippen auf dem Handy:** Ein Tipp löst erst `focusin`, dann `click` aus. Ob der Kasten schon offen war, wird deshalb bei `pointerdown` gemerkt (`initTooltip`).
+- **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.
 - **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
 - **Browser-Testwerkzeug** klickt auch in der Handyansicht mit der Maus. Touch-Verhalten per `PointerEvent` mit `pointerType: "touch"` im Browser nachstellen.
