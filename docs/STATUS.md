@@ -10,7 +10,7 @@ _Stand: 22.11.2026_
 
 ## Kurz gesagt
 
-Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vier Müllarten kommen automatisch:
+Die App läuft im Heimnetz auf der Synology (DS723+, Container Manager) und lokal zum Entwickeln. Alle vier Müllarten kommen automatisch:
 
 | Müllart | Quelle | Status |
 |---|---|---|
@@ -18,7 +18,7 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | Wertstoffe (gelbe Tonne) | BSR-API (Abfuhr durch ALBA) | ✅ funktioniert |
 | Papier | Berlin Recycling Kundenportal (Login) | ✅ funktioniert mit echtem Login getestet |
 
-**Noch nicht passiert:** Einsatz auf der Synology (siehe „Offene Punkte“).
+Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgerufen.
 
 ## Was fertig ist
 
@@ -34,7 +34,7 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
 | Druckansicht als Jahresplaner auf **einer** A4-Seite quer: je Monat eine Spalte mit Platz zum Eintragen, Wochenenden schattiert, Berliner Feiertage, KW, Fußzeile mit Berliner Skyline | `app/static/app.js` (`renderPlanner`, `berlinHolidays`), `app.css` (`@media print`), Fußzeile in `index.html` |
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
-| Docker-Setup für Synology | `Dockerfile`, `docker-compose.yml` |
+| Docker-Setup für Synology (läuft auf DS723+), Benutzernummer per `PUID`/`PGID` | `Dockerfile`, `docker-compose.yml`, README |
 | Tests (29, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
@@ -46,25 +46,25 @@ Die App läuft lokal und ist inhaltlich fertig für den ersten Einsatz. Alle vie
 | #2 | Kopfzeile neu gestaltet; `Cache-Control: no-cache`, damit Browser nach Updates keine alten CSS/JS-Dateien verwenden |
 | #3 | Info-Kasten für Abholtage |
 | #5 | Druckansicht als Jahresplaner auf einer A4-Seite quer (zum Eintragen), Berliner Feiertage, Skyline als Fußzeile |
+| #6 | Benutzernummer für den Container per `.env` (`PUID`/`PGID`), damit die App auf der Synology in `data/` schreiben darf |
+| #7 | Erster Einsatz auf der Synology: README-Anleitung mit Deploy-Key, `$$` im Passwort, Hinweise zum Container Manager |
 
 ## Offene Punkte
 
 In etwa nach Wichtigkeit:
 
-1. **Einsatz auf der Synology.** Anleitung steht im README. Der **Docker-Build ist noch nie gelaufen** (auf dem Entwicklungs-Mac ist kein Docker installiert). Beim ersten Build auf dem NAS auf Fehler achten.
-   - Die App läuft im Container unter der Benutzernummer aus `PUID`/`PGID` (`.env`). Die muss zum Besitzer des Ordners `data/` passen, sonst kann die App nichts speichern. Auf der Synology ist das meist nicht 1000, sondern z. B. 1026/100 (README beschreibt, wie man es herausfindet). Ungetestet, weil noch nie auf dem NAS gelaufen.
-   - Das GitHub-Repo ist **privat**: Für `git clone` auf dem NAS braucht es ein Zugangs-Token (nur Lesen, nur dieses Repo) – oder die Dateien per Finder/SMB kopieren.
-2. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
-3. **Nicht geprüft:**
+1. **Zweite Person als Mitarbeiterin einladen.** Sie hat noch keinen GitHub-Account. Sobald es einen gibt: auf GitHub unter Settings → Collaborators einladen (oder `gh api -X PUT repos/<owner>/abfuhrkalender-berlin/collaborators/<benutzername>`). Ab dann gilt: vor jedem Merge fragen (siehe „Arbeitsweise“).
+2. **Nicht geprüft:**
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
    - Druckvorschau in Safari/Firefox (geprüft nur Chrome: genau 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
+   - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
-4. **Kleinigkeiten:**
+3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
-5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
+4. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
 
 ## Lokale Umgebung
 
@@ -84,6 +84,10 @@ In etwa nach Wichtigkeit:
 
 ## Stolpersteine (schon einmal passiert)
 
+- **`$` im Passwort (Docker):** Docker liest die `.env` anders als der lokale Server und hält `$` für einen Platzhalter – das Passwort kam auf dem NAS gekürzt an, Login scheiterte. Lösung: in der `.env` auf dem NAS `$$` schreiben. Prüfen ohne die Werte zu zeigen: Länge per `docker exec` ausgeben (Befehl im README).
+- **`.env` auf dem NAS geändert:** Container muss neu erstellt werden (`sudo docker compose up -d --force-recreate`), ein Neustart reicht nicht.
+- **GitHub-Token ließ sich nicht anlegen** (Button „Generate token“ ohne Reaktion, in zwei Browsern). Deshalb holt das NAS den Code per Deploy-Key (nur Lesen, nur dieses Repo).
+- **Container Manager meldet beim ersten Erstellen einen Fehler**, der Build lief aber im Hintergrund weiter und die App lief danach. Erst abwarten, dann per SSH `sudo docker compose build` für die echte Meldung.
 - **Berlin-Recycling-Login:** Nach `Login.aspx/Auth` muss `Default.aspx` einmal per GET geöffnet werden, sonst antworten die Datenabfragen mit `{"Error": …}`. Der Test-Mock in `tests/conftest.py` bildet das über ein Sitzungs-Cookie nach.
 - **Portal-Felder:** `Task Date` (Datum), `Material Description` (z. B. „Altpapier, gemischt“), `Description` ist die Behältergröße. Das Portal liefert nur die nächsten ~10 Termine.
 - **BSR blockt Browser-Aufrufe** (`Origin`-Header → 403). Alles läuft über den Server.
