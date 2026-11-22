@@ -187,17 +187,58 @@ legend { font-weight: 600; margin-bottom: 8px; }
 .dlg-actions a { color: var(--accent); margin-right: auto; font-size: 14px; }
 #ics-url { flex: 1; font-size: 13px; }
 
+/* ---------- Druck: ganzes Jahr auf einer A4-Seite (hochkant, für den Kühlschrank) ---------- */
 @media print {
-  @page { size: A4 landscape; margin: 10mm; }
-  :root { --bg: #fff; --surface: #fff; --muted-bg: #f1efe8; --text: #000; }
-  body { max-width: none; padding: 0; font-size: 11px; }
+  /* Rand 0 blendet die Kopf-/Fußzeilen des Browsers (Datum, URL) aus; den Rand macht der body. */
+  @page { size: A4 portrait; margin: 0; }
+  :root {
+    --bg: #fff; --surface: #fff; --muted-bg: #f1efe8; --text: #000; --text-2: #4a4945; --text-3: #8a8983;
+    --border: rgba(0, 0, 0, 0.14); --border-strong: rgba(0, 0, 0, 0.25); --danger: #a32d2d;
+    --c-HM: #5f5e5a; --c-BI: #8a5a2b;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { height: 100%; }
+  body {
+    max-width: none; width: 210mm; height: 296mm; margin: 0; padding: 11mm 11mm 6mm;
+    overflow: hidden; display: flex; flex-direction: column;
+    font-size: 9pt; background: #fff; color: #000;
+  }
   .no-print, .status, .banner, .address .edit, .tip { display: none !important; }
   .print-only { display: inline; }
-  .address { color: #000; }
-  .months { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .month { padding: 6px; break-inside: avoid; }
-  .day { min-height: 22px; }
+
+  .top { flex: none; display: block; }
+  h1 { font-size: 22pt; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+  .address { color: var(--text-2); font-size: 10pt; padding: 0; margin-top: 2mm; }
+  .address .ic { width: 4mm; height: 4mm; }
+
+  .legend { flex: none; margin: 4mm 0 3mm; gap: 2.5mm 5mm; font-size: 9pt; color: #000; }
+  .legend .sw { width: 3mm; height: 3mm; margin-right: 1.5mm; }
+
+  .months {
+    flex: 1 1 auto; min-height: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 3mm;
+  }
+  .month { display: flex; flex-direction: column; min-height: 0; padding: 2mm 2.5mm 1.5mm; border-radius: 3mm; border-color: var(--border-strong); break-inside: avoid; }
+  .month h3 { font-size: 10.5pt; margin: 0 0 1mm; }
+  /* Immer Platz für 6 Wochenzeilen, damit alle Monate gleich aussehen und nichts überläuft. */
+  .grid { flex: 1; min-height: 0; grid-template-rows: auto repeat(6, minmax(0, 1fr)); gap: 0.6mm; font-size: 8.5pt; line-height: 1.25; }
+  .grid .wd { font-size: 7pt; }
+  .day { min-height: 0; overflow: hidden; padding-top: 0.4mm; border-radius: 1.5mm; color: var(--text-3); }
+  .day.has { color: #000; font-weight: 600; }
   .day.today { outline: none; }
   .day.past { opacity: 1; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .dots { margin-top: 0.2mm; gap: 0.6mm; }
+  .dot { width: 2mm; height: 2mm; }
+  .dot.moved { outline-width: 0.35mm; outline-offset: 0.25mm; }
+
+  .print-foot { display: block; flex: none; margin-top: 3mm; }
+  .skyline { display: block; width: 100%; height: 16mm; }
+  .skyline .sky { fill: #d6d2c6; }
+  .skyline .ubahn { fill: #f0c419; }
+  .skyline .ubahn-win, .skyline .truck-win { fill: #fff; }
+  .skyline .truck { fill: #f07d00; }
+  .skyline .wheels { fill: #3a3936; }
+  .foot-text { display: flex; justify-content: space-between; gap: 4mm; margin-top: 1.5mm; font-size: 7.5pt; color: var(--text-3); }
+  .foot-text .motto { font-style: italic; font-size: 8.5pt; color: var(--text-2); }
 }

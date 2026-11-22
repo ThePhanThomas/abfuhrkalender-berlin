@@ -75,6 +75,7 @@ function renderYears() {
   availableYears = sorted;
   $("year").textContent = selectedYear;
   $("print-year").textContent = selectedYear;
+  $("print-date").textContent = fmtDate(iso(new Date())).slice(4);
   $("year-prev").disabled = selectedYear <= sorted[0];
   $("year-next").disabled = selectedYear >= sorted[sorted.length - 1];
   document.title = `Abfuhrkalender ${selectedYear}`;
