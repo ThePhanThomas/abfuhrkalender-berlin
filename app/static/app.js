@@ -2,7 +2,22 @@
 
 const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 const SOURCE_NAMES = { bsr: "BSR", berlin_recycling: "Berlin Recycling", paper_manual: "Papier (manuell)" };
+
+// Line icons per waste type (24 × 24, stroke = currentColor)
+const CAT_ICONS = {
+  HM: '<path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',
+  BI: '<path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/>',
+  WS: '<path d="M10 3h4v3l2 3v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9l2-3z"/><path d="M8 13h8"/>',
+  PP: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  GL: '<path d="M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v7M8 21h8"/>',
+  LT: '<path d="M12 21v-8M12 13c-5 0-8-3-8-8 5 0 8 3 8 8zM12 13c5 0 8-3 8-8-5 0-8 3-8 8z"/>',
+  WB: '<path d="M12 3l5 7h-3l4 6H6l4-6H7zM12 16v5"/>',
+  SO: '<circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2"/>',
+};
+const catIcon = (c) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${CAT_ICONS[c] || CAT_ICONS.SO}</svg>`;
+const tile = (c) => `<span class="tile" style="--c: var(--c-${c})">${catIcon(c)}</span>`;
 
 const $ = (id) => document.getElementById(id);
 let state = null;
@@ -13,6 +28,7 @@ let availableYears = [];
 // ---------- helpers ----------
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const parseIso = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const fmtLong = (s) => { const d = parseIso(s); return `${WEEKDAYS_LONG[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]}`; };
 const fmtDate = (s) => { const d = parseIso(s); return `${WEEKDAYS[d.getDay()]}, ${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`; };
 const catName = (c) => (state && state.categories[c]) || c;
 const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
@@ -83,7 +99,6 @@ function renderYears() {
 
 function renderNext() {
   const today = iso(new Date());
-  const tomorrow = iso(new Date(Date.now() + 864e5));
   const next = new Map();
   for (const p of visiblePickups()) {
     if (p.date >= today && !next.has(p.category)) next.set(p.category, p);
@@ -93,22 +108,32 @@ function renderNext() {
     $("next").innerHTML = `<p class="empty">${state.config.address ? "Keine kommenden Termine. Daten aktualisieren?" : "Richte zuerst deine Adresse ein."}</p>`;
     return;
   }
-  $("next").innerHTML = items.map((p) => {
-    const days = Math.round((parseIso(p.date) - parseIso(today)) / 864e5);
-    const when = p.date === today ? "Heute" : p.date === tomorrow ? "Morgen" : `in ${days} Tagen`;
-    const soon = days <= 1 ? " soon" : "";
-    const note = p.moved_from ? " · verschoben" : "";
-    return `<div class="card${soon}" style="--c: var(--c-${p.category})">
-      <div class="when">${when}</div>
-      <div class="what">${esc(catName(p.category))}</div>
-      <div class="date">${fmtDate(p.date)}${note}</div>
+  const daysUntil = (p) => Math.round((parseIso(p.date) - parseIso(today)) / 864e5);
+  const moved = (p) => (p.moved_from ? ` · <span class="moved-note">verschoben</span>` : "");
+  // All pickups on the first upcoming date share the hero card (e.g. Bio and Hausmüll on the same day).
+  const first = items.filter((p) => p.date === items[0].date);
+  const rest = items.filter((p) => p.date !== items[0].date);
+  const n = daysUntil(first[0]);
+  const count = n === 0 ? `<b>Heute</b>` : n === 1 ? `<b>Morgen</b>` : `<b>${n}</b><span>Tage</span>`;
+  const hero = `<div class="hero-main${n <= 1 ? " soon" : ""}" style="--c: var(--c-${first[0].category})">
+      <div class="hero-tiles">${first.map((p) => tile(p.category)).join("")}</div>
+      <div class="hero-text">
+        <div class="eyebrow">Nächste Abholung</div>
+        <div class="hero-what">${first.map((p) => esc(catName(p.category))).join(" & ")}</div>
+        <div class="hero-date">${fmtLong(first[0].date)} · ${esc([...new Set(first.map((p) => p.provider))].join(", "))}${first.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
+      </div>
+      <div class="count${n <= 1 ? " word" : ""}">${count}</div>
     </div>`;
-  }).join("");
+  const list = rest.length ? `<div class="hero-list">${rest.map((p) => `<div class="hl-row">${tile(p.category)}
+      <div class="hl-text"><div class="hl-what">${esc(catName(p.category))}</div><div class="hl-date">${fmtLong(p.date)}${moved(p)}</div></div>
+      <span class="rel">${relativeDay(p.date)}</span></div>`).join("")}</div>` : "";
+  $("next").classList.toggle("single", !rest.length);
+  $("next").innerHTML = hero + list;
 }
 
 function renderLegend() {
-  const html = state.config.categories.map((c) => `<span><span class="sw" style="background: var(--c-${c})"></span>${esc(catName(c))}</span>`);
-  html.push(`<span><span class="dot moved" style="--c: var(--text-3); display:inline-block; margin-right:6px"></span>Feiertagsverschiebung</span>`);
+  const html = state.config.categories.map((c) => `<span class="chip">${tile(c)}${esc(catName(c))}</span>`);
+  html.push(`<span class="legend-moved"><span class="moved-mark"></span>Feiertagsverschiebung</span>`);
   $("legend").innerHTML = html.join("");
 }
 
@@ -120,6 +145,12 @@ function renderMonths() {
     byDay.get(p.date).push(p);
   }
   const today = iso(new Date());
+  const now = new Date();
+  // Day fill: one waste type = its tint, two = split diagonally, more = first two (dots in the tooltip tell the rest).
+  const fillOf = (ps) => {
+    const cols = ps.slice(0, 2).map((p) => `color-mix(in srgb, var(--c-${p.category}) var(--day-tint), transparent)`);
+    return cols.length === 2 ? `linear-gradient(135deg, ${cols[0]} 50%, ${cols[1]} 50%)` : cols[0] || "";
+  };
   let html = "";
   for (let m = 0; m < 12; m++) {
     const first = new Date(selectedYear, m, 1);
@@ -129,14 +160,15 @@ function renderMonths() {
     for (let d = 1; d <= days; d++) {
       const key = iso(new Date(selectedYear, m, d));
       const ps = byDay.get(key) || [];
-      const cls = ["day", ps.length ? "has" : "", key === today ? "today" : "", key < today ? "past" : ""].join(" ");
-      const dots = ps.map((p) => `<span class="dot${p.moved_from ? " moved" : ""}" style="--c: var(--c-${p.category})"></span>`).join("");
+      const cls = ["day", ps.length ? "has" : "", key === today ? "today" : "", key < today ? "past" : "", ps.some((p) => p.moved_from) ? "moved" : ""].filter(Boolean).join(" ");
       const attrs = ps.length
-        ? ` data-date="${key}" tabindex="0" aria-label="${esc(`${fmtDate(key)}: ${ps.map((p) => catName(p.category) + (p.moved_from ? " (verschoben)" : "")).join(", ")}`)}"`
+        ? ` data-date="${key}" tabindex="0" style="--fill: ${fillOf(ps)}" aria-label="${esc(`${fmtDate(key)}: ${ps.map((p) => catName(p.category) + (p.moved_from ? " (verschoben)" : "")).join(", ")}`)}"`
         : "";
-      g += `<div class="${cls}"${attrs}>${d}${dots ? `<div class="dots">${dots}</div>` : ""}</div>`;
+      g += `<div class="${cls}"${attrs}>${d}</div>`;
     }
-    html += `<section class="month"><h3>${MONTHS[m]} ${selectedYear}</h3><div class="grid">${g}</div></section>`;
+    const isCur = selectedYear === now.getFullYear() && m === now.getMonth();
+    const isDone = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && m < now.getMonth());
+    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}"><h3>${MONTHS[m]}${isCur ? `<small>Dieser Monat</small>` : ""}</h3><div class="grid">${g}</div></section>`;
   }
   dayIndex = byDay;
   hideTip();

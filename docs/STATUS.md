@@ -25,9 +25,11 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Funktion | Wo im Code |
 |---|---|
 | Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
-| Jahresübersicht mit Farbpunkten, „Nächste Abholungen“, Feiertagsverschiebungen markiert | `app/static/app.js` (`renderMonths`, `renderNext`) |
+| Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt | `app/static/app.js` (`renderMonths`) |
+| „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
+| App-Icon (Tonne, Kalenderblatt, Fernsehturm), wechselt selbst zwischen hell und dunkel; dient auch als Favicon | `app/static/icon.svg` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
-| Kopfzeile mit Jahres-Umschalter „‹ 2026 ›“ | `app/static/index.html`, `app.css` |
+| Kopfzeile mit App-Icon und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
 | Papier: Kundenportal **oder** selbst angegebener Rhythmus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
@@ -49,6 +51,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #6 | Benutzernummer für den Container per `.env` (`PUID`/`PGID`), damit die App auf der Synology in `data/` schreiben darf |
 | #8 | Drucken auf dem iPhone: Kalender passt wieder auf eine Seite (vorher 2 Seiten im Querformat) |
 | #7 | Erster Einsatz auf der Synology: README-Anleitung mit Deploy-Key, `$$` im Passwort, Hinweise zum Container Manager |
+| – | Neues Design („Variante A“): App-Icon, Hero-Karte mit Countdown, Symbole je Müllart, farbig gefüllte Abholtage, Schatten statt Rahmen. Druckansicht unverändert |
 
 ## Offene Punkte
 
@@ -59,13 +62,16 @@ In etwa nach Wichtigkeit:
    - Feiertagsberechnung (`berlinHolidays`, Ostern per Gauß-Formel) hat keine automatischen Tests – es gibt bisher keine JS-Tests. Für 2026 von Hand geprüft.
    - Druckvorschau in Safari/Firefox am Mac (geprüft: Chrome mit Rand 0 bis 20 mm und Safari auf dem iPhone, Quer- und Hochformat: je 1 Seite). Ob ein Browser trotzdem Kopf-/Fußzeilen (Datum, URL) druckt, hängt von seinen Druckeinstellungen ab.
    - Info-Kasten auf einem echten Handy (nur simuliertes Antippen getestet).
+   - Neues Design nur in Chrome und im simulierten Handyfenster angesehen, nicht in Safari/Firefox und nicht auf einem echten Handy. `color-mix()` braucht Safari ab 16.2.
+   - App-Icon als Favicon: Safari zeigt SVG-Favicons teils nicht oder ohne Hell/Dunkel-Wechsel.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
-4. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
+4. **Für die spätere PWA:** Aus `app/static/icon.svg` PNG-Größen erzeugen (180 px für iPhone, 192/512 px, Fassung „maskable“ mit mehr Rand) und für 16/32 px eine vereinfachte Fassung zeichnen – das volle Motiv wird dort zum Klecks.
+5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Push/Mail.
 
 ## Lokale Umgebung
 
