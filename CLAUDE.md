@@ -6,7 +6,7 @@ Hinweise für Claude (und Menschen), die an diesem Repository arbeiten.
 
 Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als Jahreskalender zeigt. Sie läuft im Heimnetz als Docker-Container auf einer Synology. Mehr dazu im [README](README.md).
 
-**Zu Beginn jeder Session [docs/STATUS.md](docs/STATUS.md) lesen** – dort stehen der aktuelle Stand, offene Punkte und bekannte Stolpersteine. Wer etwas abschließt oder Neues herausfindet, aktualisiert die Datei im selben Pull Request.
+**Zu Beginn jeder Session [docs/STATUS.md](docs/STATUS.md) lesen** (gilt für die Hauptsitzung, nicht für Subagents) – dort stehen der aktuelle Stand, offene Punkte und bekannte Stolpersteine. Wer etwas abschließt oder Neues herausfindet, aktualisiert die Datei im selben Pull Request.
 
 ## Zusammenarbeit
 
@@ -15,6 +15,23 @@ Eine kleine Web-App, die die Müllabfuhrtermine für eine Berliner Adresse als J
 - Arbeite auf einem eigenen Branch (z. B. `feature/erinnerung-per-mail`), nicht direkt auf `main`. Änderungen kommen per Pull Request auf `main`; die Tests laufen dort automatisch (GitHub Actions).
 - Commit-Nachrichten auf Deutsch, kurz und im Imperativ: „Druckansicht für A5 ergänzen“.
 - Nichts pushen, mergen oder löschen, ohne dass die Person es ausdrücklich möchte.
+
+## Arbeitsteilung mit Subagents (Tokens sparen)
+
+Die Hauptsitzung plant und entscheidet; Routinearbeit geht an kleinere Modelle in `.claude/agents/`:
+
+| Agent | Modell | Wofür |
+|---|---|---|
+| `umsetzer` | Sonnet | klar beschriebene Code-Änderung umsetzen, Tests laufen lassen |
+| `browser-pruefer` | Sonnet | Oberfläche nach Checkliste prüfen (hell, dunkel, Handy) |
+| `tester` | Haiku | pytest, GitHub-Tests eines PR, Seitenzahl der Druckansicht |
+| `git-routine` | Haiku | committen, pushen, PR öffnen, einfache STATUS.md-Konflikte |
+| `sucher` | Haiku | Code-Stellen über mehrere Dateien finden |
+
+- **Nur delegieren, wenn es sich lohnt.** Ein Subagent startet ohne Vorwissen; was sich mit ein, zwei Befehlen erledigen lässt, macht die Hauptsitzung selbst.
+- **Genaue Aufträge schreiben:** Dateien, Funktionen, gewünschtes Verhalten, Checkliste. Entscheidungen trifft die Hauptsitzung vorher.
+- **Kurze Berichte:** Die Agents melden nur Ergebnis und Probleme, keinen Code und keine Logs.
+- Subagents lesen `docs/STATUS.md` nicht (das ist Sache der Hauptsitzung).
 
 ## Feste Regeln
 
