@@ -65,7 +65,8 @@
 body {
   margin: 0 auto;
   max-width: 1200px;
-  padding: 0 24px 48px;
+  /* Ränder des Geräts (Notch, Home-Leiste) freihalten – nötig wegen viewport-fit=cover */
+  padding: 0 max(24px, env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   background: var(--bg);
   color: var(--text);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -94,11 +95,13 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accen
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Kopfzeile: bleibt beim Scrollen oben, leicht durchscheinend über die ganze Fensterbreite */
+/* Kopfzeile: bleibt beim Scrollen oben, leicht durchscheinend über die ganze Fensterbreite.
+   Oben um den Systemrand eingerückt (Statusleiste, Fensterknöpfe auf dem iPad): Der Hintergrund
+   reicht darunter, die Schrift beginnt erst darunter – sonst zeichnet iPadOS sie mit weich. */
 .top {
   position: sticky; top: 0; z-index: 5;
   display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-  padding: 14px 0; margin-bottom: 24px;
+  padding: calc(14px + env(safe-area-inset-top)) 0 14px; margin-bottom: 24px;
 }
 .top::before {
   content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(50% - 50vw); right: calc(50% - 50vw);
@@ -157,8 +160,8 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
   button.ghost { padding: 8px; }
 }
 @media (max-width: 560px) {
-  body { padding: 0 16px 40px; }
-  .top { padding: 12px 0; margin-bottom: 16px; }
+  body { padding: 0 max(16px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .top { padding: calc(12px + env(safe-area-inset-top)) 0 12px; margin-bottom: 16px; }
   .actions { width: 100%; justify-content: space-between; }
   .year { margin-right: 0; }
   #btn-refresh { padding: 8px; }
