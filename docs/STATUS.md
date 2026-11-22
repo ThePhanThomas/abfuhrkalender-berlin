@@ -31,13 +31,13 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
 | Kopfzeile mit App-Icon und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
 | Button „Aktualisieren“ + automatischer Abruf (Standard wöchentlich) | `app/main.py` (`_auto_refresh_loop`), `app/refresh.py` |
-| Papier: Kundenportal **oder** selbst angegebener Rhythmus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
+| Papier: Kundenportal **oder** selbst angegebener Turnus **oder** aus | `app/sources/berlin_recycling.py`, `app/sources/manual.py` |
 | Vergangene Papiertermine bleiben erhalten (Portal liefert nur kommende) | `app/refresh.py` (`keep_past`) |
 | Kalender-Abo (`/api/calendar.ics`), optional Erinnerung am Vorabend 18 Uhr | `app/ics.py` |
 | Druckansicht als Jahresplaner auf **einer** A4-Seite quer: je Monat eine Spalte mit Platz zum Eintragen, Wochenenden schattiert, Berliner Feiertage, KW, Fußzeile mit Berliner Skyline | `app/static/app.js` (`renderPlanner`, `berlinHolidays`), `app.css` (`@media print`), Fußzeile in `index.html` |
 | Helles/dunkles Design, Handy-Layout | `app/static/app.css` |
 | Docker-Setup für Synology (läuft auf DS723+), Benutzernummer per `PUID`/`PGID` | `Dockerfile`, `docker-compose.yml`, README |
-| Tests (29, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
+| Tests (31, alle Webcalls gemockt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
 
@@ -53,6 +53,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #7 | Erster Einsatz auf der Synology: README-Anleitung mit Deploy-Key, `$$` im Passwort, Hinweise zum Container Manager |
 | – | Neues Design („Variante A“): App-Icon, Hero-Karte mit Countdown, Symbole je Müllart, farbig gefüllte Abholtage, Schatten statt Rahmen. Druckansicht unverändert |
 | – | Bio kräftiger braun, Wertstoffe zitronengelb (waren schwer zu unterscheiden); Einstellungsdialog auf dem Handy: Eingabefelder 16 px, damit Safari nicht hineinzoomt, Felder untereinander |
+| – | Glas und Sonstiges aus den Einstellungen entfernt (keine Quelle liefert dafür Termine); „Rhythmus“ heißt jetzt „Turnus“ |
 
 ## Offene Punkte
 
@@ -97,6 +98,7 @@ In etwa nach Wichtigkeit:
 - **GitHub-Token ließ sich nicht anlegen** (Button „Generate token“ ohne Reaktion, in zwei Browsern). Deshalb holt das NAS den Code per Deploy-Key (nur Lesen, nur dieses Repo).
 - **Container Manager meldet beim ersten Erstellen einen Fehler**, der Build lief aber im Hintergrund weiter und die App lief danach. Erst abwarten, dann per SSH `sudo docker compose build` für die echte Meldung.
 - **Berlin-Recycling-Login:** Nach `Login.aspx/Auth` muss `Default.aspx` einmal per GET geöffnet werden, sonst antworten die Datenabfragen mit `{"Error": …}`. Der Test-Mock in `tests/conftest.py` bildet das über ein Sitzungs-Cookie nach.
+- **Müllarten ohne Termine:** Laubtonne und Weihnachtsbaum kommen von der BSR, aber nur, wenn es sie an der Adresse gibt (Weihnachtsbaum nur im Januar, also oft erst im nächsten Jahr sichtbar). Glas und Sonstiges sind nicht wählbar: Das Kundenportal würde Glas zwar als `GL` erkennen, liefert bei uns aber nur Papier. Ältere `config.json` mit `GL`/`SO` werden beim Laden bereinigt (`store.load_config`).
 - **Portal-Felder:** `Task Date` (Datum), `Material Description` (z. B. „Altpapier, gemischt“), `Description` ist die Behältergröße. Das Portal liefert nur die nächsten ~10 Termine.
 - **BSR blockt Browser-Aufrufe** (`Origin`-Header → 403). Alles läuft über den Server.
 - **`.env`-Änderungen** wirken erst nach einem Neustart des Servers (`--reload` lädt nur Code neu).

@@ -123,7 +123,7 @@ def put_config(cfg: Config):
     if unknown:
         raise HTTPException(422, f"Unbekannte Kategorien: {unknown}")
     if cfg.paper.mode == "manual" and not cfg.paper.first_date:
-        raise HTTPException(422, "Für den manuellen Papier-Rhythmus fehlt das Datum einer Abholung.")
+        raise HTTPException(422, "Für den manuellen Papier-Turnus fehlt das Datum einer Abholung.")
     old = store.load_config()
     new = cfg.model_dump(mode="json")
     store.save_config(new)
