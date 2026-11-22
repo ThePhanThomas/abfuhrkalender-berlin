@@ -1,7 +1,7 @@
 :root {
-  --bg: #f7f6f2;
+  --bg: #f1efe9;
   --surface: #ffffff;
-  --muted-bg: #efede6;
+  --muted-bg: #e9e7e0;
   --text: #1f1e1c;
   --text-2: #5f5e5a;
   --text-3: #8a8983;
@@ -14,11 +14,11 @@
   --danger: #a32d2d;
   --danger-bg: #fcebeb;
   --radius: 8px;
-  --shadow: 0 1px 2px rgba(30, 25, 15, 0.06), 0 4px 16px rgba(30, 25, 15, 0.06);
-  --shadow-lg: 0 2px 4px rgba(30, 25, 15, 0.06), 0 12px 32px rgba(30, 25, 15, 0.10);
+  --shadow: 0 0 0 1px rgba(30, 25, 15, 0.04), 0 1px 2px rgba(30, 25, 15, 0.08), 0 4px 16px rgba(30, 25, 15, 0.07);
+  --shadow-lg: 0 0 0 1px rgba(30, 25, 15, 0.04), 0 2px 4px rgba(30, 25, 15, 0.08), 0 12px 32px rgba(30, 25, 15, 0.12);
   --tint: 16%;      /* Hintergrund der Symbol-Kacheln */
-  --stack-1: #f1efe9; /* Kanten des Monatsstapels */
-  --stack-2: #e9e7e0;
+  --stack-1: #ebe9e2; /* Kanten des Monatsstapels */
+  --stack-2: #e3e1d9;
   --day-tint: 40%;  /* Füllung der Abholtage im Kalender */
 
   --c-HM: #5f5e5a;
@@ -35,9 +35,9 @@
 @media screen {
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #1a1a19;
-    --surface: #242422;
-    --muted-bg: #2f2f2c;
+    --bg: #151514;
+    --surface: #262624;
+    --muted-bg: #31312e;
     --text: #f1efe8;
     --text-2: #b4b2a9;
     --text-3: #888780;
@@ -49,8 +49,8 @@
     --on-accent: #1f2733;
     --danger: #f09595;
     --danger-bg: #501313;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.4);
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
     --tint: 24%;
     --day-tint: 55%;
     --stack-1: #363633;
