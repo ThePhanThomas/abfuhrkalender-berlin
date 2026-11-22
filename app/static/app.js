@@ -168,7 +168,7 @@ function renderMonths() {
     }
     const isCur = selectedYear === now.getFullYear() && m === now.getMonth();
     const isDone = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && m < now.getMonth());
-    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}"><h3>${MONTHS[m]}${isCur ? `<small>Dieser Monat</small>` : ""}</h3><div class="grid">${g}</div></section>`;
+    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
   }
   dayIndex = byDay;
   hideTip();
