@@ -26,7 +26,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 |---|---|
 | Einrichtung der Adresse in der App (Suche über BSR, keine Adresse im Code) | `app/static/app.js` (Einstellungen), `app/sources/bsr.py` |
 | Jahresübersicht: Abholtage farbig gefüllt (zwei Arten = diagonal geteilt), laufender Monat hervorgehoben, vergangene Monate blasser, Feiertagsverschiebung als roter Punkt. Im laufenden Jahr sind vergangene Monate eingeklappt („Januar – Oktober anzeigen“), nach jedem Laden wieder; Druck zeigt immer das ganze Jahr | `app/static/app.js` (`renderMonths`, `setEarlier`) |
-| „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
+| „Nächste Abholung“ als große Karte mit Countdown, übrige Müllarten als Liste daneben mit Farbstreifen der Müllart am linken Rand; Symbol je Müllart (`CAT_ICONS`) | `app/static/app.js` (`renderNext`, `tile`) |
 | App-Icon (Tonne, Kalenderblatt, Fernsehturm), wechselt selbst zwischen hell und dunkel; dient auch als Favicon | `app/static/icon.svg` |
 | Info-Kasten pro Abholtag (Maus, Antippen, Tastatur) | `app/static/app.js` (`initTooltip`, `showTip`) |
 | Kopfzeile mit App-Icon und Jahres-Umschalter „‹ 2026 ›“, bleibt beim Scrollen oben (durchscheinend) | `app/static/index.html`, `app.css` |
@@ -60,6 +60,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Vergangene Monate des laufenden Jahres eingeklappt, per Zeile einblendbar |
 | – | Drucken in der iPhone-App: Hinweis-Dialog mit „In Safari öffnen“, Safari druckt dann von selbst (`?print=<Jahr>`) |
 | – | README und Repo-Beschreibung allgemeiner: Betrieb auf jedem Rechner mit Docker, Synology nur noch als Beispiel |
+| – | Liste „Danach“: Farbstreifen der Müllart am linken Kartenrand, Trennlinien zwischen den Zeilen |
 
 ## Offene Punkte
 
