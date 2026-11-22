@@ -23,6 +23,7 @@ let state = null;
 let selectedYear = null;
 let pendingAddress = null;
 let availableYears = [];
+let showEarlier = false; // vergangene Monate des laufenden Jahres eingeblendet? Wird bewusst nicht gespeichert.
 let offlineSince = null; // null = Server erreichbar; sonst ISO-Zeit des gezeigten Stands ("" = unbekannt)
 
 // ---------- helpers ----------
@@ -200,12 +201,28 @@ function renderMonths() {
     }
     const isCur = selectedYear === now.getFullYear() && m === now.getMonth();
     const isDone = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && m < now.getMonth());
-    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
+    const isEarlier = isDone && selectedYear === now.getFullYear();
+    html += `<section class="month${isCur ? " cur" : ""}${isDone ? " done" : ""}${isEarlier ? " earlier" : ""}"><h3>${MONTHS[m]}</h3><div class="grid">${g}</div></section>`;
+  }
+  // Im laufenden Jahr sind vergangene Monate eingeklappt; eine Zeile davor blendet sie ein.
+  const earlier = selectedYear === now.getFullYear() ? now.getMonth() : 0;
+  if (earlier > 0) {
+    const range = earlier === 1 ? MONTHS[0] : `${MONTHS[0]} – ${MONTHS[earlier - 1]}`;
+    html = `<button type="button" class="ghost earlier-toggle" id="earlier-toggle" aria-expanded="false" data-range="${range}"></button>` + html;
   }
   dayIndex = byDay;
   hideTip();
   $("months").innerHTML = html;
+  if (earlier > 0) setEarlier(showEarlier);
   renderPlanner(byDay);
+}
+
+function setEarlier(show) {
+  showEarlier = show;
+  const btn = $("earlier-toggle");
+  $("months").classList.toggle("show-earlier", show);
+  btn.setAttribute("aria-expanded", String(show));
+  btn.textContent = `${btn.dataset.range} ${show ? "ausblenden" : "anzeigen"}`;
 }
 
 // ---------- print: year planner (one column per month, room to write) ----------
@@ -546,6 +563,7 @@ async function init() {
     renderYears();
     renderMonths();
   };
+  $("months").addEventListener("click", (e) => { if (e.target.closest("#earlier-toggle")) setEarlier(!showEarlier); });
   $("year-prev").addEventListener("click", () => stepYear(-1));
   $("year-next").addEventListener("click", () => stepYear(1));
   $("btn-search").addEventListener("click", searchAddress);
