@@ -327,8 +327,13 @@ function berlinHolidays(y) {
   return new Map([
     [`${y}-01-01`, "Neujahr"], [`${y}-03-08`, "Frauentag"], [rel(-2), "Karfreitag"], [rel(1), "Oster\u00admontag"],
     [`${y}-05-01`, "Tag der Arbeit"], [rel(39), "Himmel\u00adfahrt"], [rel(50), "Pfingst\u00admontag"],
-    [`${y}-10-03`, "Dt. Einheit"], [`${y}-12-25`, "1. Weih\u00adnachten"], [`${y}-12-26`, "2. Weih\u00adnachten"],
+    [`${y}-10-03`, "Dt. Einheit"], [`${y}-12-25`, "Weih­nachten"], [`${y}-12-26`, "Weih­nachten"],
   ]);
+}
+
+/* Keine gesetzlichen Feiertage: im Planer nur beschriftet, nicht hinterlegt */
+function specialDays(y) {
+  return new Map([[`${y}-12-24`, "Heilig­abend"], [`${y}-12-31`, "Silvester"]]);
 }
 
 function isoWeek(date) {
@@ -340,6 +345,7 @@ function isoWeek(date) {
 function renderPlanner(byDay) {
   const y = selectedYear;
   const holidays = berlinHolidays(y);
+  const special = specialDays(y);
   let html = "";
   for (let m = 0; m < 12; m++) {
     const days = new Date(y, m + 1, 0).getDate();
@@ -350,11 +356,12 @@ function renderPlanner(byDay) {
       const key = iso(date);
       const wd = date.getDay();
       const hol = holidays.get(key);
+      const note = hol || special.get(key);
       const cls = ["pl-row", wd === 0 || wd === 6 ? "pl-we" : "", wd === 1 ? "pl-mo" : "", hol ? "pl-hol" : ""].join(" ");
       const dots = (byDay.get(key) || []).map((p) => `<span class="dot${p.moved_from ? " moved" : ""}" style="--c: var(--c-${p.category})"></span>`).join("");
       const kw = wd === 1 ? `<span class="pl-kw">${isoWeek(date)}</span>` : "";
       rows += `<div class="${cls}"><span class="pl-d">${d}</span><span class="pl-wd">${WEEKDAYS[wd]}</span>`
-        + `<span class="pl-dots">${dots}</span><span class="pl-note">${hol ? esc(hol) : ""}</span>${kw}</div>`;
+        + `<span class="pl-dots">${dots}</span><span class="pl-note">${note ? esc(note) : ""}</span>${kw}</div>`;
     }
     html += `<section class="pl-month"><h3>${MONTHS[m]}</h3>${rows}</section>`;
   }

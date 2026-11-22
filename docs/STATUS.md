@@ -67,6 +67,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Push-Hinweise bei verschobenen/geänderten Terminen und bei fehlschlagenden Abrufen |
 | #20 | Neues App-Icon (BSR-Orange/Nachtblau), Akzentfarbe Orange statt Blau, Umschalter hell/dunkel/automatisch, Animation beim Ein-/Ausblenden vergangener Monate. Druckansicht unverändert |
 | – | Countdown „in 2 Tagen“ statt „2 Tage“, Überschrift mit oranger „Berlin“. Druckansicht unverändert |
+| – | Druck-Fußzeile: Skyline überarbeitet (Funkturm geschwungen, Brandenburger Tor schmaler mit Quadriga, Fernsehturm mit kleinerer Kugel, Endpfeiler an der Oberbaumbrücke). Feiertagsnamen im Druck kleiner (4,6 pt), 25./26.12. heißen „Weihnachten“, Heiligabend und Silvester beschriftet (ohne Feiertagsfarbe, `specialDays`), Safari darf kleine Schrift nicht mehr selbst vergrößern (`text-size-adjust`) |
 
 ## Offene Punkte
 
@@ -83,6 +84,7 @@ In etwa nach Wichtigkeit:
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
+   - Feiertagsnamen im Druck: in Chrome geprüft (passen in die Zeile), noch nicht auf dem iPhone – dort ragte „Ostermontag“ aus der Zeile, vermutlich weil Safari kleine Schrift vergrößert hat.
    - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
    - Push-Hinweise (Verschiebung, Termin geändert, Abruffehler) nur in Tests geprüft, noch nicht live beobachtet. Erste echte Feiertagsverschiebung: Weihnachten/Neujahr 2026/27. Das Fehlerbanner mit „(seit …)“ ist nicht im Browser angesehen.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
