@@ -157,7 +157,7 @@ function renderNext() {
       </div>
       <div class="count${n <= 1 ? " word" : ""}">${count}</div>
     </div>`;
-  const list = rest.length ? `<div class="hero-list">${rest.map((p) => `<div class="hl-row">${tile(p.category)}
+  const list = rest.length ? `<div class="hero-list">${rest.map((p) => `<div class="hl-row" style="--c: var(--c-${p.category})">${tile(p.category)}
       <div class="hl-text"><div class="hl-what">${esc(catName(p.category))}</div><div class="hl-date">${fmtLong(p.date)}${moved(p)}</div></div>
       <span class="rel">${relativeDay(p.date)}</span></div>`).join("")}</div>` : "";
   $("next").classList.toggle("single", !rest.length);
