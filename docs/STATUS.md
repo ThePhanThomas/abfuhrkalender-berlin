@@ -4,7 +4,7 @@ Diese Datei ist für alle – Menschen wie Claude –, die hier in einer neuen S
 
 **Bitte aktuell halten:** Wer ein Feature abschließt oder etwas Neues herausfindet, passt diese Datei im selben Pull Request an.
 
-_Stand: 22.11.2026_
+_Stand: 23.11.2026_
 
 ---
 
@@ -18,7 +18,7 @@ Die App läuft im Heimnetz auf der Synology (DS723+, Container Manager) und loka
 | Wertstoffe (gelbe Tonne) | BSR-API (Abfuhr durch ALBA) | ✅ funktioniert |
 | Papier | Berlin Recycling Kundenportal (Login) | ✅ funktioniert mit echtem Login getestet |
 
-Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgerufen. Seit 22.11.2026 auch als App auf dem iPhone (über Tailscale-HTTPS), Push-Erinnerung funktioniert.
+Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgerufen. Seit 22.11.2026 auch als App auf dem iPhone, Push-Erinnerung funktioniert. Seit 23.11.2026 läuft HTTPS über eine eigene Domain mit Let's-Encrypt-Zertifikat statt über Tailscale (siehe „Betrieb auf dem NAS“).
 
 ## Was fertig ist
 
@@ -76,6 +76,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | – | Kacheln heben sich besser ab: Hintergrund etwas dunkler (hell `#f1efe9`, dunkel `#151514`), Schatten kräftiger mit feiner Kante; Farbe auch in `theme-color`/Manifest. Druckansicht unverändert |
 | #31 | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README; README: Code per `git clone https://…` statt Deploy-Key |
 | – | Repo auf GitHub öffentlich geschaltet (22.11.2026) |
+| – | HTTPS auf dem NAS über eigene Domain statt Tailscale; README beschreibt HTTPS jetzt allgemein (eigene Domain, Tailscale, vorhandener Reverse Proxy). Hinweise in der App sagen „per VPN“ statt „mit Tailscale“ |
 
 ## Offene Punkte
 
@@ -92,17 +93,32 @@ In etwa nach Wichtigkeit:
    - Betrieb außerhalb der Synology (anderes NAS, Raspberry Pi, Linux-Server) – die allgemeine Anleitung im README ist dort noch nicht ausprobiert.
    - Ob die App nach einem Neustart der Synology von selbst wieder startet (`restart: unless-stopped` ist gesetzt, aber noch nicht ausprobiert).
    - PWA: Auf dem echten iPhone geprüft sind Home-Bildschirm, Push-Anmeldung und „Test senden“ (Apple akzeptiert die Platzhalter-Absenderangabe). Noch nicht beobachtet: die echte Erinnerung am Vorabend und die Anzeige ohne Server auf dem iPhone (am Mac geprüft).
+   - Push ohne VPN auf dem iPhone: Mit ausgeschaltetem Tailscale kam auf dem iPhone eine Mitteilung nicht an, auf dem iPad zu Hause schon. Laut Code braucht der Empfang keine Verbindung zum Server; vermutlich war es „Test senden“ (erreicht ohne Verbindung den Server nicht und gilt nur fürs eigene Gerät) oder die Anmeldung des iPhones war weg. Nach dem Umstieg auf die eigene Domain neu angemeldet – die nächste Abend-Erinnerung ohne VPN beobachten.
+   - Erste automatische Erneuerung des Zertifikats (fällig etwa Ende Januar 2027) noch nicht beobachtet.
    - Feiertagsnamen im Druck: in Chrome geprüft (passen in die Zeile), noch nicht auf dem iPhone – dort ragte „Ostermontag“ aus der Zeile, vermutlich weil Safari kleine Schrift vergrößert hat.
    - Drucken aus der iPhone-App: Der Sprung nach Safari (`x-safari-https:`, ab iOS 17) ist nur am Mac nachgestellt, nicht auf dem echten iPhone. Der automatische Druck nach `?print=<Jahr>` ist in Chrome geprüft.
    - Push-Hinweise (Verschiebung, Termin geändert, Abruffehler) nur in Tests geprüft, noch nicht live beobachtet. Erste echte Feiertagsverschiebung: Weihnachten/Neujahr 2026/27 – die Verschiebungen auf den 21./22.12.2026 werden im Kalender richtig angezeigt (mit BSR-Seite verglichen). Das Fehlerbanner mit „(seit …)“ ist nicht im Browser angesehen.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
    - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
+   - Wie viele Geräte eine Erinnerung erreicht hat, steht nirgends im Protokoll (`log.info` in `push.py` wird nicht ausgegeben), und Anmeldungen, die Apple als ungültig meldet, verschwinden still. Erschwert die Fehlersuche bei Push.
+   - Auf dem NAS gibt es noch keine Umleitung von http auf https für die App (optional, Browser versuchen ohnehin zuerst https). Ginge mit einer kleinen nginx-Datei in `/usr/local/etc/nginx/sites-enabled/`, die ein DSM-Update aber entfernen kann.
    - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
    - Favicon: für 16/32 px eine vereinfachte Fassung des Icons zeichnen – das volle Motiv wird dort zum Klecks. (Die PWA-Icons 180/192/512 px gibt es.)
 4. **Commit-Autoren:** Das Repo ist seit 22.11.2026 öffentlich. Ältere Commits nennen als Autor den vollen Namen und den Rechnernamen (`…@Mac.fritz.box`) – ob die Historie umgeschrieben wird, ist noch nicht entschieden (bräuchte ein erzwungenes Überschreiben auf GitHub und ein neues Holen auf dem NAS). Für neue Commits lässt sich die anonyme GitHub-Adresse einstellen (`git config user.email "<id>+<name>@users.noreply.github.com"`).
 5. **Ideen, nicht beauftragt:** Fertiges Docker-Image per GitHub Actions bauen (GHCR), damit die Synology nicht selbst bauen muss; Erinnerung per Mail.
+
+## Betrieb auf dem NAS (HTTPS)
+
+Ohne Namen und Domain, die stehen nur auf dem NAS bzw. beim Domain-Anbieter:
+
+- Ein Name unter unserer Domain (plus `*.` davor für alles darunter) zeigt per A-Eintrag auf die feste Heimnetz-Adresse des NAS. Die App läuft unter einem Namen darunter.
+- Zertifikat (Let's Encrypt, Wildcard) per **acme.sh** direkt auf dem NAS, installiert in `/usr/local/share/.acme.sh`, DNS-Prüfung über die Schnittstelle des Domain-Anbieters (Modul `dns_kas`). Die Zugangsdaten dafür liegen nur dort in `account.conf` (nur root).
+- Eingespielt in DSM per `--deploy-hook synology_dsm` mit `SYNO_USE_TEMP_ADMIN=1` (kein DSM-Passwort gespeichert). Erneuerung wöchentlich über den DSM-Aufgabenplaner als root: `acme.sh --cron --home /usr/local/share/.acme.sh`.
+- DSM-Reverse-Proxy: HTTPS 443 → `localhost:8080`. Kein HSTS (bewusst, damit ein Zertifikatsproblem die App nicht sperrt).
+- Tailscale ist vom NAS und von den Geräten entfernt; von unterwegs geht es per WireGuard ins Heimnetz.
+- Sobald Let's Encrypt **DNS-PERSIST-01** anbietet (Stand Nov. 2026 noch nicht), kann die Prüfung auf einen festen DNS-Eintrag umgestellt werden; dann müssen die Zugangsdaten des Domain-Anbieters nicht mehr auf dem NAS liegen.
 
 ## Lokale Umgebung
 
@@ -137,7 +153,11 @@ In etwa nach Wichtigkeit:
 - **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.
 - **Einstellungen auf dem iPhone zu breit:** Eingabefelder hatten 13 px Schrift; Safari zoomt bei unter 16 px beim Antippen hinein, danach musste man seitlich scrollen. In der Simulation am Mac nicht nachstellbar, weil dort nicht gezoomt wird – auf einem echten iPhone prüfen.
 - **Druckansicht prüfen** geht am schnellsten mit Chrome ohne Fenster: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --no-pdf-header-footer --virtual-time-budget=4000 --print-to-pdf=druck.pdf http://localhost:8080/` – das PDF enthält die echte Adresse, also nicht ins Repo legen.
-- **HTTPS-Adresse lud endlos** (erste Einrichtung auf der Synology): `tailscale serve --bg 8080` lief, `http://…ts.net:8080` ging, aber `https://…ts.net` hing. Nach einmaligem `tailscale cert <name>.ts.net` auf dem NAS ging es sofort – vermutlich hing das erste Abholen des Zertifikats. Befehl im README. Der Befehlspfad auf der Synology ist `/var/packages/Tailscale/target/bin/tailscale`.
+- **Tailscale-HTTPS lud endlos** (erste Einrichtung, inzwischen nicht mehr in Gebrauch): `tailscale serve --bg 8080` lief, `https://…ts.net` hing. Nach einmaligem `tailscale cert <name>.ts.net` auf dem NAS ging es sofort. Der Befehlspfad auf der Synology ist `/var/packages/Tailscale/target/bin/tailscale`.
+- **Fritz!Box blockiert den eigenen Namen:** Öffentlicher Name mit Heimnetz-Adresse → leere DNS-Antwort (DNS-Rebind-Schutz). Ausnahme unter Heimnetz → Netzwerk → Netzwerkeinstellungen eintragen; Namen darunter sind mit abgedeckt. Prüfen mit `dig +short @<Router-IP> <name>`.
+- **acme.sh auf der Synology:** In `/tmp` dürfen keine Programme gestartet werden („Permission denied“) – zum Installieren `sh ./acme.sh --install …`. Ohne `--server letsencrypt` nimmt acme.sh ZeroSSL.
+- **DSM nutzte trotz „Standardzertifikat“ weiter das alte:** In Sicherheit → Zertifikat → Einstellungen muss bei **Systemstandard** das neue Zertifikat ausgewählt sein; „Standardzertifikat“ gilt nur für Dienste ohne eigene Zuordnung.
+- **Zwei-Faktor-Pflicht beim Einspielen:** Mit `SYNO_USE_TEMP_ADMIN=1` setzt acme.sh die 2FA-Pflicht für Admins bei jeder Erneuerung für ein paar Sekunden aus und stellt sie wieder her (steht in der Ausgabe). Bei Problemen in Systemsteuerung → Sicherheit → Konto nachsehen.
 - **Service Worker und Push brauchen HTTPS** (Ausnahme: `localhost`). Über `http://<NAS-IP>:8080` meldet sich kein Service Worker an, die App läuft dann wie vorher. Auf dem iPhone geht Push außerdem nur, wenn die App vom Home-Bildschirm geöffnet wird, nicht in Safari.
 - **Offline testen:** Seite einmal laden (Service Worker speichert Seite und `/api/state`), Server stoppen, neu laden → blauer Hinweis mit Stand. Der Service Worker holt immer zuerst frisch vom Server (5 s Wartezeit), deshalb muss die Cache-Version (`CACHE` in `sw.js`) bei Updates nicht erhöht werden.
 - **Verschiebung erkennen:** Die BSR meldet Feiertagsverschiebungen als neuen Termin mit `moved_from`; der alte Termin fällt dabei aus der Liste. `detect_changes` überspringt solche Termine, sonst käme fälschlich „entfällt“. Berlin Recycling kennt kein `moved_from`, dort hilft nur der Vergleich zweier Abrufe.

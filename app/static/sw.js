@@ -16,7 +16,7 @@ const SHELL = [
 // Nur diese Adressen werden zwischengespeichert. Alles andere (Adresssuche,
 // Speichern, Aktualisieren) geht immer direkt an den Server.
 const CACHED = (path) => path === "/" || path === "/api/state" || path.startsWith("/static/");
-// Ohne Heimnetz/Tailscale antwortet der Server gar nicht – nicht ewig warten.
+// Ohne Heimnetz/VPN antwortet der Server gar nicht – nicht ewig warten.
 const TIMEOUT_MS = 5000;
 
 self.addEventListener("install", (event) => {

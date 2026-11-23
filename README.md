@@ -112,34 +112,28 @@ Wie [oben](#allgemein-jeder-rechner-mit-docker), per SSH im Ordner `/volume1/doc
 
 ## Als App aufs iPhone (mit Push-Erinnerung)
 
-Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server erlaubt, muss sie über **HTTPS** mit einem gültigen Zertifikat laufen. Über `http://<IP>:8080` geht das nicht (die App funktioniert dort weiter, nur ohne diese Extras). Wir nutzen dafür **Tailscale**: Es gibt dem Rechner eine feste HTTPS-Adresse (`https://<rechnername>.<tailnet>.ts.net`) mit Zertifikat, ohne dass am Router etwas freigegeben werden muss. Wer schon einen eigenen Reverse-Proxy mit Zertifikat hat (z. B. Caddy, Traefik, nginx), kann stattdessen den nutzen und auf Port 8080 weiterleiten.
+Damit das iPhone die App mit Symbol, Push-Erinnerungen und Anzeige ohne Server erlaubt, muss sie über **HTTPS** laufen, mit einem Zertifikat, dem das Gerät vertraut (ein selbst signiertes reicht nicht). Über `http://<IP>:8080` geht das nicht – die App funktioniert dort weiter, nur ohne diese Extras.
 
-### Einmalig auf dem Server
+### HTTPS einrichten
 
-1. **Tailscale installieren** und mit einem (kostenlosen) Tailscale-Konto anmelden. Auf der Synology über das **Paket-Zentrum**, auf anderen Systemen nach der [Anleitung von Tailscale](https://tailscale.com/download) (auf Linux z. B. per Installationsskript, danach `sudo tailscale up`).
-2. In der Tailscale-Verwaltung im Browser (<https://login.tailscale.com/admin/dns>): **MagicDNS** einschalten und darunter **HTTPS Certificates** aktivieren.
-3. Die App über HTTPS freigeben (leitet auf Port 8080 weiter, bleibt nach einem Neustart erhalten):
-   ```bash
-   sudo tailscale serve --bg 8080
-   ```
-   Auf der Synology liegt das Programm nicht im Suchpfad, dort heißt der Befehl `sudo /var/packages/Tailscale/target/bin/tailscale serve --bg 8080` (gilt auch für den nächsten Schritt).
-   Die Ausgabe zeigt die Adresse `https://<rechnername>.<tailnet>.ts.net`. Abschalten mit `sudo tailscale serve --https=443 off`.
-4. **Lädt die HTTPS-Adresse endlos** (bei uns auf der Synology beim ersten Mal passiert), während `http://<rechnername>.<tailnet>.ts.net:8080` geht: Das Zertifikat einmal von Hand holen, danach ging es sofort. Die Dateien landen in `/tmp` und werden nicht gebraucht (die `.key`-Datei ist geheim, also löschen):
-   ```bash
-   cd /tmp && sudo tailscale cert <rechnername>.<tailnet>.ts.net && sudo rm <rechnername>.<tailnet>.ts.net.crt <rechnername>.<tailnet>.ts.net.key
-   ```
+Wie man dahin kommt, hängt vom eigenen Netz ab. Die App braucht nur eine HTTPS-Adresse, die an Port 8080 weiterleitet. Gängige Wege:
+
+- **Eigene Domain mit Reverse Proxy:** Ein Name wie `kalender.<deine-domain>` zeigt im DNS auf die Heimnetz-Adresse des Servers. Ein Reverse Proxy nimmt dort HTTPS an und reicht an Port 8080 weiter – auf der Synology unter Systemsteuerung → Anmeldeportal → Erweitert → Reverse Proxy, sonst z. B. Caddy, nginx oder Traefik. Das Zertifikat kommt von Let's Encrypt über eine DNS-Prüfung, etwa mit [acme.sh](https://github.com/acmesh-official/acme.sh) und dem Modul für den eigenen Domain-Anbieter ([Anleitung für die Synology](https://github.com/acmesh-official/acme.sh/wiki/Synology-NAS-Guide)). Am Router muss nichts freigegeben werden; von unterwegs ist die App nur per VPN ins Heimnetz live.
+- **Tailscale:** `tailscale serve --bg 8080` gibt dem Server eine Adresse `https://<rechnername>.<tailnet>.ts.net` mit Zertifikat ([Anleitung](https://tailscale.com/kb/1312/serve)). Die Adresse ist nur erreichbar, solange Tailscale auch auf dem iPhone läuft – dann aber auch unterwegs.
+- **Vorhandener Reverse Proxy:** Wer schon einen mit gültigem Zertifikat betreibt, leitet einen Namen an Port 8080 weiter.
+
+Zeigt ein öffentlicher Name auf eine Heimnetz-Adresse, blockieren manche Router ihn vorsorglich (**DNS-Rebind-Schutz**). Dann den Namen dort als Ausnahme eintragen, bei der Fritz!Box unter Heimnetz → Netzwerk → Netzwerkeinstellungen.
 
 ### Auf dem iPhone (iOS 16.4 oder neuer)
 
-1. App **Tailscale** aus dem App Store installieren, mit demselben Konto anmelden, VPN einschalten.
-2. In **Safari** die Adresse `https://<rechnername>.<tailnet>.ts.net` öffnen → Teilen-Symbol (ggf. hinter „…“) → **Zum Home-Bildschirm** („Als Web-App öffnen“ anlassen).
-3. Die App über das neue Symbol öffnen → **Einstellungen** → „Erinnerung per Push“ einschalten, Mitteilungen erlauben, **Test senden**.
+1. In **Safari** die HTTPS-Adresse öffnen → Teilen-Symbol (ggf. hinter „…“) → **Zum Home-Bildschirm** („Als Web-App öffnen“ anlassen).
+2. Die App über das neue Symbol öffnen → **Einstellungen** → „Erinnerung per Push“ einschalten, Mitteilungen erlauben, **Test senden**.
 
 Gut zu wissen:
 
-- Die `ts.net`-Adresse funktioniert nur, solange Tailscale auf dem iPhone an ist – zu Hause **und unterwegs**. Mit Tailscale ist die App also überall live.
-- Ist Tailscale aus oder der Server nicht erreichbar, zeigt die App den zuletzt geladenen Stand mit einem blauen Hinweis. Aktualisieren und Einstellungen gehen dann nicht.
-- Push-Erinnerungen kommen immer, auch ohne Tailscale: Der Server schickt sie über Apple an das iPhone.
+- Ist der Server nicht erreichbar (z. B. unterwegs ohne VPN), zeigt die App den zuletzt geladenen Stand mit einem Hinweis. Aktualisieren, Einstellungen und „Test senden“ gehen dann nicht.
+- Push-Erinnerungen kommen trotzdem: Der Server schickt sie über Apple an das iPhone, das iPhone muss den Server dafür nicht erreichen.
+- Die App gehört zu ihrer Adresse. Ändert sich die Adresse (z. B. beim Wechsel von Tailscale auf eine eigene Domain), die alte App vom Home-Bildschirm löschen, die neue hinzufügen und Push dort neu einschalten. Einstellungen pro Gerät (ausgeblendete Müllarten, Hell/Dunkel) müssen dann neu gesetzt werden.
 - Die Uhrzeit (Standard 18 Uhr) gilt für alle Geräte; ein- und ausgeschaltet wird pro Gerät. Erinnert wird nur, wenn am nächsten Tag eine der angezeigten Müllarten abgeholt wird.
 - Zusätzlich kommen Hinweise (nur zwischen 8 und 21 Uhr): etwa eine Woche vorher, wenn ein Termin verschoben ist (z. B. wegen eines Feiertags); wenn sich beim Abruf ein Termin der nächsten zwei Wochen geändert hat; und wenn der Abruf einer Quelle zweimal hintereinander fehlschlägt (und wieder, sobald er klappt). Nach einem Fehlschlag versucht die App es nach 6 Stunden erneut.
 - Jedes Gerät meldet sich einzeln an. Wird die App vom Home-Bildschirm gelöscht, entfernt der Server die Anmeldung beim nächsten Versand von selbst.
