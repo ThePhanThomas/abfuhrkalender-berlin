@@ -34,7 +34,7 @@ const fmtDate = (s) => { const d = parseIso(s); return `${WEEKDAYS[d.getDay()]},
 const catName = (c) => (state && state.categories[c]) || c;
 const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
-const OFFLINE_MSG = "Keine Verbindung zum Server. Das geht nur im Heimnetz (oder mit Tailscale).";
+const OFFLINE_MSG = "Keine Verbindung zum Server. Das geht nur im Heimnetz (oder per VPN).";
 
 async function api(path, opts = {}) {
   let res;
@@ -133,7 +133,7 @@ function renderStatus() {
   banner.classList.toggle("offline", offlineSince !== null);
   if (offlineSince !== null) {
     banner.hidden = false;
-    banner.textContent = `Keine Verbindung zum Server – du siehst den gespeicherten Stand${offlineSince ? ` vom ${fmtStamp(offlineSince)}` : ""}. Aktualisieren und Einstellungen gehen nur im Heimnetz (oder mit Tailscale).`;
+    banner.textContent = `Keine Verbindung zum Server – du siehst den gespeicherten Stand${offlineSince ? ` vom ${fmtStamp(offlineSince)}` : ""}. Aktualisieren und Einstellungen gehen nur im Heimnetz (oder per VPN).`;
     return;
   }
   banner.hidden = errors.length === 0;
