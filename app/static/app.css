@@ -213,12 +213,16 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .count.word b { font-size: 26px; }
 [data-theme="dark"] .count b { color: color-mix(in srgb, var(--c) 75%, white); }
 .hero-main.soon { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
-/* Abholungen heute und morgen: eine Zeile pro Tag */
-.hero-main.days { flex-direction: column; align-items: stretch; gap: 0; padding: 18px 24px; }
-.day-row { display: flex; gap: 14px; align-items: center; padding: 10px 0; position: relative; z-index: 1; }
+/* Abholungen heute und morgen: eine Zeile pro Tag, jede rechts leicht in der Farbe ihrer Müllart hinterlegt */
+.hero-main.days { flex-direction: column; align-items: stretch; gap: 0; padding: 18px 0 0; }
+.hero-main.days::after { content: none; }
+.hero-main.days .eyebrow { padding: 0 24px 4px; }
+.day-row {
+  display: flex; gap: 14px; align-items: center; padding: 12px 24px;
+  background: linear-gradient(to left, color-mix(in srgb, var(--c) 16%, transparent), transparent 65%);
+}
+.day-row:last-child { padding-bottom: 16px; }
 .day-row + .day-row { border-top: 1px solid var(--muted-bg); }
-.day-word { flex: none; width: 76px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--c); }
-[data-theme="dark"] .day-word { color: color-mix(in srgb, var(--c) 75%, white); }
 .day-tiles { display: flex; flex: none; }
 .day-tiles .tile { --s: 44px; }
 .day-tiles .tile + .tile { margin-left: -10px; box-shadow: 0 0 0 2px var(--surface); }
@@ -244,9 +248,11 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
   .hero-tiles .tile { --s: 52px; }
   .hero-what { font-size: 23px; }
   .count b { font-size: 34px; }
-  .hero-main.days { padding: 14px 16px; }
+  .hero-main.days { padding: 14px 0 0; }
+  .hero-main.days .eyebrow { padding: 0 16px 4px; }
+  .day-row { padding: 10px 16px; }
   .day-row { gap: 10px; }
-  .day-word { width: auto; min-width: 64px; font-size: 17px; }
+  .day-row .count.word b { font-size: 21px; }
   .day-tiles .tile { --s: 36px; }
   .day-what { font-size: 16px; }
 }

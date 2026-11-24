@@ -189,16 +189,16 @@ function fillNext(pickups, keep = null) {
   const tomorrow = n === 0 ? rest.filter((p) => daysUntil(p) === 1) : [];
   if (tomorrow.length) {
     const dayRow = (word, ps, hint) => `<div class="day-row" style="--c: var(--c-${ps[0].category})">
-        <b class="day-word">${word}</b>
         <div class="day-tiles">${ps.map((p) => tile(p.category)).join("")}</div>
         <div class="hero-text">
           <div class="day-what">${ps.map((p) => esc(catName(p.category))).join(" & ")}</div>
           <div class="hero-date">${fmtLong(ps[0].date)} · ${providers(ps)}${ps.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
           ${hint ? `<div class="day-hint">${hint}</div>` : ""}
         </div>
+        <div class="count word"><b>${word}</b></div>
       </div>`;
     const later = rest.filter((p) => daysUntil(p) > 1);
-    const hero2 = `<div class="hero-main soon days" style="--c: var(--c-${first[0].category})">
+    const hero2 = `<div class="hero-main soon days">
         <div class="eyebrow">Heute und morgen</div>
         ${dayRow("Heute", first)}
         ${dayRow("Morgen", tomorrow, "Heute Abend rausstellen")}
