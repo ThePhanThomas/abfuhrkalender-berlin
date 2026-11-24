@@ -66,17 +66,11 @@ async def _push_loop() -> None:
             await asyncio.to_thread(push.run_nag)
         except Exception:
             log.exception("Nachhak-Erinnerung fehlgeschlagen")
-        await asyncio.sleep(60)
-
-
-async def _out_notice_loop() -> None:
-    """"Steht draußen" soon after the waiting time (push.OUT_DELAY), so check often."""
-    while True:
         try:
             await asyncio.to_thread(push.run_out_notices)
         except Exception:
             log.exception("Rausstell-Mitteilung fehlgeschlagen")
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
 
 
 @contextlib.asynccontextmanager
@@ -86,7 +80,6 @@ async def lifespan(_: FastAPI):
         tasks.append(asyncio.create_task(_auto_refresh_loop()))
     if PUSH_ENABLED:
         tasks.append(asyncio.create_task(_push_loop()))
-        tasks.append(asyncio.create_task(_out_notice_loop()))
     yield
     for task in tasks:
         task.cancel()
