@@ -165,6 +165,7 @@
     <form method="dialog" id="settings-form">
       <div class="sheet-head">
         <h2 id="settings-h">Einstellungen</h2>
+        <span class="save-state" id="settings-status" aria-live="polite"></span>
         <button type="button" class="sheet-x" id="btn-close" aria-label="Schließen">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -220,7 +221,6 @@
         <div class="card">
           <label class="srow">
             <span class="grow"><span class="t">Push am Vorabend</span><span class="sub">auf diesem Gerät</span></span>
-            <span class="badge">wirkt sofort</span>
             <input type="checkbox" class="switch" role="switch" id="push-on">
           </label>
           <p class="status-box info" id="push-hint" hidden></p>
@@ -234,11 +234,31 @@
             <button type="button" class="link-btn" id="btn-push-test">Senden</button>
           </div>
         </div>
+
+        <h3 class="sec-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>Rausstellen</h3>
+        <div class="card">
+          <label class="srow">
+            <span class="grow"><span class="t">Tonnen markieren</span><span class="sub">„Rausgestellt“ und „Abgeholt“ auf diesem Gerät</span></span>
+            <input type="checkbox" class="switch" role="switch" id="marks-on">
+          </label>
+          <p class="off-note" id="marks-push-note" hidden>Mitteilungen zum Rausstellen gibt es, wenn oben „Push am Vorabend“ eingeschaltet ist.</p>
+          <p class="error pad" id="marks-push-error"></p>
+          <label class="srow" id="nag-row" hidden>
+            <span class="grow"><span class="t">Nachhaken, wenn nicht rausgestellt</span><span class="sub">auf diesem Gerät</span></span>
+            <input type="checkbox" class="switch" role="switch" id="nag-on">
+          </label>
+          <label class="srow" id="nag-time-row" hidden>
+            <span class="grow"><span class="t">Uhrzeit Nachhaken</span><span class="sub">für alle Geräte, nach der Erinnerung, spätestens 21:00</span></span>
+            <input type="time" id="nag-time" value="21:00" step="300" max="21:00">
+          </label>
+          <label class="srow" id="out-notice-row" hidden>
+            <span class="grow"><span class="t">Melden, wenn jemand rausstellt</span><span class="sub">auf diesem Gerät</span></span>
+            <input type="checkbox" class="switch" role="switch" id="out-notice-on">
+          </label>
+        </div>
       </div>
-      <div class="sheet-foot">
+      <div class="sheet-foot" id="settings-foot" hidden>
         <p class="error" id="settings-error"></p>
-        <button type="button" id="btn-cancel">Abbrechen</button>
-        <button type="submit" class="primary" id="btn-save">Speichern</button>
       </div>
     </form>
   </dialog>

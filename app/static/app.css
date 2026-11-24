@@ -398,12 +398,16 @@ legend { font-weight: 600; margin-bottom: 8px; }
 /* iOS stellt Datumsfelder sonst breiter dar, als die Spalte erlaubt */
 .row input[type="date"], .row input[type="time"] { -webkit-appearance: none; appearance: none; min-height: 36px; }
 
-/* ---------- Einstellungen: Abschnitte als Karten, unten feste Knopfleiste ---------- */
+/* ---------- Einstellungen: Abschnitte als Karten, Änderungen wirken sofort ---------- */
 dialog.sheet { padding: 0; border-radius: 16px; width: min(560px, calc(100vw - 32px)); max-height: min(88vh, 820px); overflow: hidden; box-shadow: var(--shadow-lg); }
 dialog.sheet[open] { display: flex; flex-direction: column; }
 dialog.sheet form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
 .sheet-head h2 { margin: 0; font-size: 19px; }
+.save-state { margin-left: auto; margin-right: 12px; font-size: 13px; color: var(--text-2); transition: opacity .3s; }
+.save-state.error { color: var(--danger); }
+.save-state.fade { opacity: 0; }
+.sheet-foot[hidden] { display: none; }
 .sheet-x { border: 0; background: var(--muted-bg); width: 32px; height: 32px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); }
 .sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 4px 20px 20px; background: var(--bg); flex: 1; min-height: 0; }
 .sheet-foot { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--border); }

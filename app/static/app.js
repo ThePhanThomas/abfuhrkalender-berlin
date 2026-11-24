@@ -224,12 +224,14 @@ function fillNext(pickups, keep = null) {
 // Markierungen liegen auf dem Server (data/marks.json), damit alle Geräte im Haushalt
 // dasselbe sehen. Ab dem Vorabend: „Rausgestellt?“; am Abholtag danach „Abgeholt?“.
 // Mehrere Tonnen am selben Tag teilen sich einen Knopf.
+// Pro Gerät abschaltbar (localStorage „marks“), z. B. für Mieter, die nichts selbst rausstellen.
+let marksOn = (() => { try { return localStorage.getItem("marks") !== "off"; } catch { return true; } })();
 const markOf = (p) => state.marks?.[p.date]?.[p.category] || null;
 const groupMark = (ps) => {
   const m = ps.map(markOf);
   return m.includes(null) ? null : m.includes("out") ? "out" : "done";
 };
-const markAttr = (ps) => { const m = groupMark(ps); return m ? ` data-mark="${m}"` : ""; };
+const markAttr = (ps) => { const m = marksOn && groupMark(ps); return m ? ` data-mark="${m}"` : ""; };
 // Nächster Zustand beim Antippen: am Vorabend nur an/aus, am Abholtag nichts → draußen → abgeholt → nichts.
 const nextMark = (m, n) => (m === null ? "out" : m === "out" && n === 0 ? "done" : null);
 
@@ -243,7 +245,7 @@ function markText(ps, m, n) {
 }
 
 function markButton(ps, n) {
-  if (n > 1) return "";
+  if (n > 1 || !marksOn) return "";
   const m = groupMark(ps);
   const t = markText(ps, m, n);
   return `<button type="button" class="mark" data-date="${ps[0].date}" data-cats="${esc(ps.map((p) => p.category).join(","))}" data-n="${n}"
@@ -271,8 +273,10 @@ async function toggleMark(btn) {
     box.classList.add("mark-anim");
   }
   try {
+    // Eigene Push-Anmeldung mitschicken: Dieses Gerät bekommt keine „Steht draußen“-Meldung.
+    const endpoint = (await currentPushSub().catch(() => null))?.endpoint || null;
     let res;
-    for (const p of ps) res = await api("/api/marks", { method: "PUT", body: JSON.stringify({ ...p, status }) });
+    for (const p of ps) res = await api("/api/marks", { method: "PUT", body: JSON.stringify({ ...p, status, endpoint }) });
     state.marks = res.marks;
   } catch (e) {
     state.marks = before;
@@ -517,7 +521,7 @@ function closeDialog(dlg) {
 }
 function initDialogs() {
   document.querySelectorAll("dialog").forEach((dlg) => {
-    dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(dlg); }); // Esc
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); if (dlg.id === "dlg-settings") closeSettings(); else closeDialog(dlg); }); // Esc
     dlg.addEventListener("close", () => dlg.classList.remove("closing"));
     // Formulare mit method="dialog" (Schließen-Knöpfe) erst ausfahren lassen
     const form = dlg.querySelector('form[method="dialog"]');
@@ -669,7 +673,6 @@ function openSettings() {
   $("number").value = "";
   $("addr-results").innerHTML = "";
   $("addr-error").textContent = "";
-  $("settings-error").textContent = "";
   // Papier zählt nur als angezeigt, wenn es auch eine Quelle hat ("off" = aus)
   const mode = cfg.paper.mode;
   const shown = new Set(cfg.categories.filter((c) => c !== "PP" || mode !== "off"));
@@ -689,6 +692,13 @@ function openSettings() {
   $("interval").value = cfg.paper.interval_weeks || 4;
   updatePaper();
   $("notify-time").value = cfg.notify_time || "18:00";
+  $("nag-time").value = cfg.nag_time || "21:00";
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  lastSaved = JSON.stringify(collectSettings().body || null);
+  showSaveState("");
+  setSettingsError("");
+  $("marks-on").checked = marksOn;
   $("dlg-settings").showModal();
   $("dlg-settings").querySelector(".sheet-body").scrollTop = 0;
   if (!cfg.address) $("street").focus();
@@ -722,6 +732,7 @@ function updatePaper() {
 function stepInterval(delta) {
   const v = Math.min(12, Math.max(1, (Number($("interval").value) || 4) + delta));
   $("interval").value = v;
+  scheduleSave(600);
 }
 
 // Vorschläge beim Tippen: kurz warten, bis die Eingabe ruht; ältere Antworten verwerfen.
@@ -762,36 +773,79 @@ async function searchAddress() {
       $("addr-results").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       showAddress();
       $("btn-addr-edit").hidden = false;
+      saveSettings();
     }));
   } catch (e) {
     if (run === searchRun) $("addr-error").textContent = e.message;
   }
 }
 
-async function saveSettings(ev) {
-  ev.preventDefault();
-  $("settings-error").textContent = "";
-  if (!pendingAddress) { $("settings-error").textContent = "Bitte eine Adresse suchen und auswählen."; return; }
+// Einstellungen wirken sofort: jede Änderung wird (bei Uhrzeiten und Turnus kurz verzögert)
+// gespeichert. Speichervorgänge laufen nacheinander, unveränderte Stände werden übersprungen.
+let saveTimer = null;
+let saveChain = Promise.resolve();
+let lastSaved = "";
+
+function collectSettings() {
+  if (!pendingAddress) return { error: "" }; // erst eine Adresse wählen, vorher gibt es nichts zu speichern
   const categories = [...$("cats").querySelectorAll("input:checked")].map((i) => i.value);
-  if (!categories.length) { $("settings-error").textContent = "Mindestens eine Müllart auswählen."; return; }
   // Papier ausgeschaltet = keine Papierquelle abfragen
   const mode = categories.includes("PP") ? (document.querySelector('input[name="paper"]:checked')?.value || "portal") : "off";
   const paper = { mode, first_date: $("first-date").value || null, interval_weeks: Number($("interval").value) || 4 };
-  if (mode === "manual" && !paper.first_date) { $("settings-error").textContent = "Datum einer bekannten Papier-Abholung angeben."; return; }
-  $("btn-save").disabled = true;
-  $("btn-save").textContent = "Speichere…";
-  try {
-    const notify_time = $("notify-time").value || "18:00";
-    state = await api("/api/config", { method: "PUT", body: JSON.stringify({ address: pendingAddress, categories, paper, notify_time }) });
-    offlineSince = null;
-    closeDialog($("dlg-settings"));
-    render();
-  } catch (e) {
-    $("settings-error").textContent = e.message;
-  } finally {
-    $("btn-save").disabled = false;
-    $("btn-save").textContent = "Speichern";
-  }
+  if (mode === "manual" && !paper.first_date) return { error: "Für den eigenen Turnus das Datum einer bekannten Papier-Abholung angeben." };
+  const nag_time = $("nag-time").value || "21:00";
+  if (nag_time > "21:00") return { error: "Nachhaken geht höchstens bis 21:00." };
+  return { body: { address: pendingAddress, categories, paper, notify_time: $("notify-time").value || "18:00", nag_time } };
+}
+
+function showSaveState(text, error = false) {
+  const el = $("settings-status");
+  el.textContent = text;
+  el.classList.toggle("error", error);
+  el.classList.remove("fade");
+}
+
+function setSettingsError(msg) {
+  $("settings-error").textContent = msg;
+  $("settings-foot").hidden = !msg;
+}
+
+function scheduleSave(delay = 0) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSettings, delay);
+}
+
+function saveSettings() {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  const { body, error } = collectSettings();
+  setSettingsError(error || "");
+  if (!body) return saveChain;
+  const json = JSON.stringify(body);
+  if (json === lastSaved) return saveChain;
+  lastSaved = json;
+  const refetch = body.address?.key !== state.config.address?.key || JSON.stringify(body.paper) !== JSON.stringify(state.config.paper);
+  saveChain = saveChain.then(async () => {
+    showSaveState(refetch ? "Speichere und lade Termine…" : "Speichere…");
+    try {
+      state = await api("/api/config", { method: "PUT", body: json });
+      offlineSince = null;
+      render();
+      showSaveState("Gespeichert ✓");
+      setTimeout(() => { if ($("settings-status").textContent === "Gespeichert ✓") $("settings-status").classList.add("fade"); }, 1500);
+    } catch (e) {
+      lastSaved = ""; // beim nächsten Versuch erneut senden
+      showSaveState("Nicht gespeichert", true);
+      setSettingsError(e.message);
+    }
+  });
+  return saveChain;
+}
+
+// Beim Schließen noch ausstehende Änderungen sofort speichern.
+function closeSettings() {
+  if (saveTimer) saveSettings();
+  closeDialog($("dlg-settings"));
 }
 
 // ---------- push reminders ----------
@@ -830,6 +884,53 @@ async function renderPush() {
   const sub = why ? null : await currentPushSub().catch(() => null);
   box.checked = !!sub;
   $("push-test-row").hidden = !sub;
+  await renderMarksPush(sub);
+}
+
+// ---------- Mitteilungen zum Rausstellen (pro Gerät, auf dem Server bei der Anmeldung) ----------
+async function renderMarksPush(sub) {
+  $("marks-push-error").textContent = "";
+  let prefs = null;
+  if (marksOn && sub) {
+    try {
+      prefs = (await api("/api/push/prefs", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) })).prefs;
+    } catch (e) {
+      $("marks-push-error").textContent = e.message;
+    }
+  }
+  $("marks-push-note").hidden = !marksOn || !!sub;
+  $("nag-row").hidden = $("out-notice-row").hidden = !prefs;
+  $("nag-on").checked = !!prefs?.nag;
+  $("out-notice-on").checked = !!prefs?.out_notice;
+  $("nag-time-row").hidden = !prefs?.nag;
+}
+
+async function setMarksPrefs(changes) {
+  const sub = await currentPushSub().catch(() => null);
+  if (!sub) return;
+  await api("/api/push/prefs", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint, ...changes }) });
+}
+
+async function toggleMarksOn() {
+  marksOn = $("marks-on").checked;
+  try { if (marksOn) localStorage.removeItem("marks"); else localStorage.setItem("marks", "off"); } catch { /* gilt bis zum Neuladen */ }
+  renderNext();
+  // Ohne Markieren ergeben die Mitteilungen dazu keinen Sinn: auf diesem Gerät abschalten.
+  if (!marksOn) await setMarksPrefs({ nag: false, out_notice: false }).catch(() => {});
+  await renderMarksPush(await currentPushSub().catch(() => null));
+}
+
+async function toggleMarksPref(box, key) {
+  $("marks-push-error").textContent = "";
+  box.disabled = true;
+  try {
+    await setMarksPrefs({ [key]: box.checked });
+  } catch (e) {
+    box.checked = !box.checked;
+    $("marks-push-error").textContent = e.message;
+  }
+  box.disabled = false;
+  $("nag-time-row").hidden = !$("nag-on").checked;
 }
 
 async function togglePush() {
@@ -965,15 +1066,26 @@ async function init() {
   ["street", "number"].forEach((id) => $(id).addEventListener("input", () => scheduleSearch()));
   $("number").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); searchAddress(); } });
   $("street").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("number").focus(); } });
-  $("settings-form").addEventListener("submit", saveSettings);
-  $("btn-cancel").addEventListener("click", () => closeDialog($("dlg-settings")));
-  $("btn-close").addEventListener("click", () => closeDialog($("dlg-settings")));
-  $("cats").addEventListener("change", updatePaper);
-  document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", updatePaper));
+  // Enter in einem Feld schließt das Formular nicht mehr ungefragt, sondern speichert nur.
+  $("settings-form").addEventListener("submit", (e) => { e.preventDefault(); saveSettings(); });
+  $("btn-close").addEventListener("click", closeSettings);
+  $("cats").addEventListener("change", (e) => {
+    // Mindestens eine Müllart bleibt an.
+    if (!$("cats").querySelector("input:checked")) { e.target.checked = true; return; }
+    updatePaper();
+    saveSettings();
+  });
+  document.querySelectorAll('input[name="paper"]').forEach((r) => r.addEventListener("change", () => { updatePaper(); saveSettings(); }));
+  $("first-date").addEventListener("change", () => saveSettings());
+  $("interval").addEventListener("input", () => scheduleSave(800));
+  ["notify-time", "nag-time"].forEach((id) => $(id).addEventListener("input", () => scheduleSave(800)));
   $("interval-down").addEventListener("click", () => stepInterval(-1));
   $("interval-up").addEventListener("click", () => stepInterval(1));
   $("push-on").addEventListener("change", togglePush);
   $("btn-push-test").addEventListener("click", testPush);
+  $("marks-on").addEventListener("change", toggleMarksOn);
+  $("nag-on").addEventListener("change", (e) => toggleMarksPref(e.target, "nag"));
+  $("out-notice-on").addEventListener("change", (e) => toggleMarksPref(e.target, "out_notice"));
   $("next").addEventListener("click", (e) => { const b = e.target.closest(".mark"); if (b) toggleMark(b); });
 
   // Service Worker: App ohne Serververbindung anzeigen und Push empfangen.
