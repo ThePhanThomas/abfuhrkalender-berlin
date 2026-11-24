@@ -98,12 +98,35 @@ def subscriptions() -> list[dict]:
         return _load()["subscriptions"]
 
 
+DEFAULT_PREFS = {"nag": False, "out_notice": False}
+
+
+def _prefs(sub: dict) -> dict:
+    return {**DEFAULT_PREFS, **(sub.get("prefs") or {})}
+
+
 def add_subscription(sub: dict) -> None:
     with _lock:
         data = _load()
+        old = next((s for s in data["subscriptions"] if s["endpoint"] == sub["endpoint"]), None)
+        if old and old.get("prefs"):  # re-subscribing keeps this device's options
+            sub = {**sub, "prefs": old["prefs"]}
         data["subscriptions"] = [s for s in data["subscriptions"] if s["endpoint"] != sub["endpoint"]]
         data["subscriptions"].append(sub)
         _save(data)
+
+
+def set_prefs(endpoint: str, changes: dict) -> dict | None:
+    """Change (or with empty `changes` only read) a device's options; None if unknown."""
+    with _lock:
+        data = _load()
+        sub = next((s for s in data["subscriptions"] if s["endpoint"] == endpoint), None)
+        if sub is None:
+            return None
+        if changes:
+            sub["prefs"] = {**_prefs(sub), **{k: bool(v) for k, v in changes.items() if k in DEFAULT_PREFS}}
+            _save(data)
+        return _prefs(sub)
 
 
 def remove_subscription(endpoint: str) -> bool:
@@ -169,8 +192,7 @@ def reminder_for(day: date) -> dict | None:
             cats.append(p.category)
     if not cats:
         return None
-    names = [CATEGORIES.get(c, c) for c in cats]
-    what = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " und " + names[-1]
+    what = _names(cats)
     body = "Tonne heute Abend rausstellen." if len(cats) == 1 else "Tonnen heute Abend rausstellen."
     moved = next(
         (
@@ -187,6 +209,11 @@ def reminder_for(day: date) -> dict | None:
         "body": body,
         "tag": f"abfuhr-{day.isoformat()}",
     }
+
+
+def _names(cats: list[str]) -> str:
+    names = [CATEGORIES.get(c, c) for c in cats]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " und " + names[-1]
 
 
 def _parse_time(s: str) -> tuple[int, int]:
@@ -324,4 +351,121 @@ def run_alerts(now: datetime | None = None) -> int:
                 pass
     if messages:
         log.info("%d Hinweis(e) verschickt, %d Zustellung(en)", len(messages), sent)
+    return sent
+
+
+# ---------- bins: second reminder and "put out" notice ----------
+NAG_WINDOW_MIN = 60  # after a restart, send a missed second reminder only within this window
+OUT_DELAY = timedelta(minutes=2)  # undo within this time = no notice (tapped by mistake)
+OUT_MAX_AGE = timedelta(minutes=30)  # older notices are dropped (e.g. server was down)
+QUIET_FROM, QUIET_TO = 23, 6  # no "put out" notices at night
+
+
+def nag_for(day: date) -> dict | None:
+    """Second reminder for pickups on `day` whose bins are not marked yet, or None."""
+    cfg = store.load_config()
+    marked = set(store.load_marks(day).get(day.isoformat(), {}))
+    cats: list[str] = []
+    for p in store.all_pickups(store.load_data()):
+        if p.date == day and p.category in cfg["categories"] and p.category not in marked and p.category not in cats:
+            cats.append(p.category)
+    if not cats:
+        return None
+    return {
+        "title": f"Noch nicht draußen: {_names(cats)}",
+        "body": "Morgen ist Abholung. " + ("Tonne" if len(cats) == 1 else "Tonnen") + " heute Abend noch rausstellen.",
+        "tag": f"abfuhr-{day.isoformat()}",  # replaces the first reminder on the device
+    }
+
+
+def run_nag(now: datetime | None = None) -> int:
+    """At the nag time: remind devices that asked for it about bins not yet put out.
+    Only after the first reminder (nag_time later than notify_time) and once a day."""
+    now = (now or datetime.now(TZ)).astimezone(TZ)
+    cfg = store.load_config()
+    nag = _parse_time(cfg.get("nag_time") or "21:00")
+    if nag <= _parse_time(cfg.get("notify_time") or "18:00"):
+        return 0
+    minutes = (now.hour * 60 + now.minute) - (nag[0] * 60 + nag[1])
+    if not 0 <= minutes < NAG_WINDOW_MIN:
+        return 0
+    today = now.date()
+    with _lock:
+        data = _load()
+        subs = [s for s in data["subscriptions"] if _prefs(s)["nag"]]
+        if data.get("nag_sent") == today.isoformat() or not subs:
+            return 0
+        data["nag_sent"] = today.isoformat()  # mark first: never send twice
+        _save(data)
+    message = nag_for(today + timedelta(days=1))
+    if not message:
+        return 0
+    sent = 0
+    for sub in subs:
+        try:
+            send(sub, message)
+            sent += 1
+        except PushError:
+            pass
+    log.info("Nachhak-Erinnerung an %d Gerät(e) verschickt", sent)
+    return sent
+
+
+def queue_out_notice(day: date, category: str, endpoint: str | None, now: datetime | None = None) -> None:
+    """Remember that a bin was just marked as put out; sent by run_out_notices after
+    OUT_DELAY, unless the mark was taken back. Nothing is queued if no device wants it."""
+    now = (now or datetime.now(TZ)).astimezone(TZ)
+    with _lock:
+        data = _load()
+        if not any(_prefs(s)["out_notice"] for s in data["subscriptions"]):
+            return
+        pending = [
+            q for q in data.get("out_pending", []) if not (q["date"] == day.isoformat() and q["category"] == category)
+        ]
+        pending.append({"date": day.isoformat(), "category": category, "at": now.isoformat(), "from": endpoint})
+        data["out_pending"] = pending
+        _save(data)
+
+
+def run_out_notices(now: datetime | None = None) -> int:
+    """Tell the other devices which bins were put out. Returns deliveries."""
+    now = (now or datetime.now(TZ)).astimezone(TZ)
+    with _lock:
+        data = _load()
+        pending = data.get("out_pending", [])
+        if not pending:
+            return 0
+        due = [q for q in pending if now - datetime.fromisoformat(q["at"]) >= OUT_DELAY]
+        if not due:
+            return 0
+        data["out_pending"] = [q for q in pending if q not in due]
+        _save(data)
+        subs = [s for s in data["subscriptions"] if _prefs(s)["out_notice"]]
+    if now.hour >= QUIET_FROM or now.hour < QUIET_TO:
+        return 0
+    marks = store.load_marks(now.date())
+    groups: dict[tuple[str, str | None], list[str]] = {}
+    for q in due:
+        if now - datetime.fromisoformat(q["at"]) > OUT_MAX_AGE:
+            continue
+        if marks.get(q["date"], {}).get(q["category"]) != "out":  # taken back or already collected
+            continue
+        groups.setdefault((q["date"], q["from"]), []).append(q["category"])
+    sent = 0
+    for (day_iso, sender), cats in groups.items():
+        day = date.fromisoformat(day_iso)
+        when = "heute" if day == now.date() else "morgen" if day == now.date() + timedelta(days=1) else f"am {_fmt(day)}"
+        message = {
+            "title": f"Steht draußen: {_names(cats)}",
+            "body": f"Abholung {when}. Rausstellen ist erledigt.",
+            "tag": f"draussen-{day_iso}",
+        }
+        for sub in subs:
+            if sub["endpoint"] == sender:
+                continue
+            try:
+                send(sub, message)
+                sent += 1
+            except PushError:
+                pass
     return sent

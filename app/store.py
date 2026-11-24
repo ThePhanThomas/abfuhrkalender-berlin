@@ -26,6 +26,7 @@ DEFAULT_CONFIG: dict = {
         "interval_weeks": 4,
     },
     "notify_time": "18:00",  # evening push reminder (HH:MM, Berlin time)
+    "nag_time": "21:00",  # second reminder if a bin is not marked as put out (latest 21:00)
 }
 
 _lock = threading.Lock()

@@ -52,7 +52,7 @@ async def _auto_refresh_loop() -> None:
 
 
 async def _push_loop() -> None:
-    """Check once a minute whether the evening reminder is due."""
+    """Check once a minute whether the evening reminder or other messages are due."""
     while True:
         try:
             await asyncio.to_thread(push.run_due)
@@ -62,6 +62,11 @@ async def _push_loop() -> None:
             await asyncio.to_thread(push.run_alerts)
         except Exception:
             log.exception("Hinweise fehlgeschlagen")
+        try:
+            await asyncio.to_thread(push.run_nag)
+            await asyncio.to_thread(push.run_out_notices)
+        except Exception:
+            log.exception("Rausstell-Mitteilungen fehlgeschlagen")
         await asyncio.sleep(60)
 
 
@@ -107,6 +112,7 @@ class Config(BaseModel):
     categories: list[str]
     paper: Paper
     notify_time: str = Field("18:00", pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
+    nag_time: str = Field("21:00", pattern=r"^(([01][0-9]|20):[0-5][0-9]|21:00)$")
 
 
 class PushKeys(BaseModel):
@@ -123,10 +129,17 @@ class PushEndpoint(BaseModel):
     endpoint: str
 
 
+class PushPrefs(BaseModel):
+    endpoint: str
+    nag: Optional[bool] = None  # None = unverändert lassen
+    out_notice: Optional[bool] = None
+
+
 class Mark(BaseModel):
     date: date
     category: str
     status: Optional[Literal["out", "done"]] = None  # None = Markierung entfernen
+    endpoint: Optional[str] = None  # Push-Anmeldung des markierenden Geräts (bekommt keine Meldung)
 
 
 MARK_DAYS_AHEAD = 7  # weiter voraus ergibt "rausgestellt" keinen Sinn
@@ -210,7 +223,11 @@ def put_mark(mark: Mark):
         raise HTTPException(422, "Vergangene Abholungen lassen sich nicht mehr markieren.")
     if (mark.date - today).days > MARK_DAYS_AHEAD:
         raise HTTPException(422, "So weit im Voraus lässt sich nichts markieren.")
-    return {"marks": store.set_mark(mark.date, mark.category, mark.status, today)}
+    before = store.load_marks(today).get(mark.date.isoformat(), {}).get(mark.category)
+    marks = store.set_mark(mark.date, mark.category, mark.status, today)
+    if mark.status == "out" and before is None:
+        push.queue_out_notice(mark.date, mark.category, mark.endpoint)
+    return {"marks": marks}
 
 
 @app.get("/api/calendar.ics")
@@ -242,6 +259,16 @@ def push_subscribe(sub: PushSubscription):
 def push_unsubscribe(body: PushEndpoint):
     push.remove_subscription(body.endpoint)
     return {"ok": True}
+
+
+@app.post("/api/push/prefs")
+def push_prefs(body: PushPrefs):
+    """Read (no fields) or change this device's push options."""
+    changes = {k: v for k, v in (("nag", body.nag), ("out_notice", body.out_notice)) if v is not None}
+    prefs = push.set_prefs(body.endpoint, changes)
+    if prefs is None:
+        raise HTTPException(404, "Dieses Gerät ist nicht für Erinnerungen angemeldet.")
+    return {"prefs": prefs}
 
 
 @app.post("/api/push/test")
