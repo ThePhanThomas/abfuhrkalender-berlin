@@ -188,12 +188,13 @@ function fillNext(pickups, keep = null) {
   // muss die Tonne schon heute Abend raus. Eine Zeile pro Tag, gleiche Tage zusammen.
   const tomorrow = n === 0 ? rest.filter((p) => daysUntil(p) === 1) : [];
   if (tomorrow.length) {
-    const dayRow = (word, ps, hint) => `<div class="day-row" style="--c: var(--c-${ps[0].category})">
+    const dayRow = (word, ps, hint) => `<div class="day-row"${markAttr(ps)} style="--c: var(--c-${ps[0].category})">
         <div class="day-tiles">${ps.map((p) => tile(p.category)).join("")}</div>
         <div class="hero-text">
           <div class="day-what">${ps.map((p) => esc(catName(p.category))).join(" & ")}</div>
           <div class="hero-date">${fmtLong(ps[0].date)} · ${providers(ps)}${ps.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
           ${hint ? `<div class="day-hint">${hint}</div>` : ""}
+          ${markButton(ps, daysUntil(ps[0]))}
         </div>
         <div class="count word"><b>${word}</b></div>
       </div>`;
@@ -206,16 +207,80 @@ function fillNext(pickups, keep = null) {
     showNext(hero2, later, keep, moved);
     return;
   }
-  const hero = `<div class="hero-main${n <= 1 ? " soon" : ""}" style="--c: var(--c-${first[0].category})">
+  const hero = `<div class="hero-main${n <= 1 ? " soon" : ""}"${n <= 1 ? markAttr(first) : ""} style="--c: var(--c-${first[0].category})">
       <div class="hero-tiles">${first.map((p) => tile(p.category)).join("")}</div>
       <div class="hero-text">
         <div class="eyebrow">Nächste Abholung</div>
         <div class="hero-what">${first.map((p) => esc(catName(p.category))).join(" & ")}</div>
         <div class="hero-date">${fmtLong(first[0].date)} · ${providers(first)}${first.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
+        ${markButton(first, n)}
       </div>
       <div class="count${n <= 1 ? " word" : ""}">${count}</div>
     </div>`;
   showNext(hero, rest, keep, moved);
+}
+
+// ---------- Tonne rausgestellt / abgeholt ----------
+// Markierungen liegen auf dem Server (data/marks.json), damit alle Geräte im Haushalt
+// dasselbe sehen. Ab dem Vorabend: „Rausgestellt?“; am Abholtag danach „Abgeholt?“.
+// Mehrere Tonnen am selben Tag teilen sich einen Knopf.
+const markOf = (p) => state.marks?.[p.date]?.[p.category] || null;
+const groupMark = (ps) => {
+  const m = ps.map(markOf);
+  return m.includes(null) ? null : m.includes("out") ? "out" : "done";
+};
+const markAttr = (ps) => { const m = groupMark(ps); return m ? ` data-mark="${m}"` : ""; };
+// Nächster Zustand beim Antippen: am Vorabend nur an/aus, am Abholtag nichts → draußen → abgeholt → nichts.
+const nextMark = (m, n) => (m === null ? "out" : m === "out" && n === 0 ? "done" : null);
+
+function markText(ps, m, n) {
+  const what = ps.length > 1 ? "Tonnen" : "Tonne";
+  const label = m === "done" ? "Abgeholt" : m === "out" ? (n === 0 ? "Abgeholt?" : "Steht draußen") : "Rausgestellt?";
+  const now = m === "done" ? "abgeholt" : m === "out" ? (ps.length > 1 ? "stehen draußen" : "steht draußen") : "nicht markiert";
+  const next = nextMark(m, n);
+  const action = next === "out" ? "als rausgestellt markieren" : next === "done" ? "als abgeholt markieren" : "Markierung entfernen";
+  return { label, aria: `${what} ${now}. Antippen: ${action}` };
+}
+
+function markButton(ps, n) {
+  if (n > 1) return "";
+  const m = groupMark(ps);
+  const t = markText(ps, m, n);
+  return `<button type="button" class="mark" data-date="${ps[0].date}" data-cats="${esc(ps.map((p) => p.category).join(","))}" data-n="${n}"
+      aria-label="${esc(t.aria)}"><svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg><span class="mark-label">${t.label}</span></button>`;
+}
+
+async function toggleMark(btn) {
+  const date = btn.dataset.date, n = Number(btn.dataset.n);
+  const ps = btn.dataset.cats.split(",").map((category) => ({ date, category }));
+  const status = nextMark(groupMark(ps), n);
+  const before = structuredClone(state.marks || {});
+  // Sofort anzeigen (mit Animation), danach speichern; schlägt das fehl, zurückdrehen.
+  state.marks = structuredClone(before);
+  const day = (state.marks[date] ||= {});
+  for (const p of ps) { if (status) day[p.category] = status; else delete day[p.category]; }
+  if (!Object.keys(day).length) delete state.marks[date];
+  const box = btn.closest(".day-row, .hero-main");
+  if (status) box.dataset.mark = status; else delete box.dataset.mark;
+  const t = markText(ps, status, n);
+  btn.querySelector(".mark-label").textContent = t.label;
+  btn.setAttribute("aria-label", t.aria);
+  if (!reducedMotion()) {
+    box.classList.remove("mark-anim");
+    void box.offsetWidth; // Animation neu starten
+    box.classList.add("mark-anim");
+  }
+  try {
+    let res;
+    for (const p of ps) res = await api("/api/marks", { method: "PUT", body: JSON.stringify({ ...p, status }) });
+    state.marks = res.marks;
+  } catch (e) {
+    state.marks = before;
+    renderNext();
+    $("banner").hidden = false;
+    $("banner").classList.toggle("offline", e.message === OFFLINE_MSG);
+    $("banner").textContent = `Markierung nicht gespeichert: ${e.message}`;
+  }
 }
 
 // Große Karte plus Liste der übrigen Müllarten einsetzen.
@@ -909,6 +974,7 @@ async function init() {
   $("interval-up").addEventListener("click", () => stepInterval(1));
   $("push-on").addEventListener("change", togglePush);
   $("btn-push-test").addEventListener("click", testPush);
+  $("next").addEventListener("click", (e) => { const b = e.target.closest(".mark"); if (b) toggleMark(b); });
 
   // Service Worker: App ohne Serververbindung anzeigen und Push empfangen.
   // Geht nur über HTTPS (oder localhost); sonst läuft die App wie bisher.

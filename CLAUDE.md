@@ -58,7 +58,7 @@ Vor jedem Commit die Tests laufen lassen. Bei Änderungen an der Oberfläche die
 - **Frontend:** `app/static/` – reines HTML/CSS/JavaScript ohne Build-Schritt und ohne externe Bibliotheken oder CDNs. So soll es bleiben.
 - **Quellen:** Jede Datenquelle ist ein Modul in `app/sources/` mit einer Funktion, die eine Liste von `Pickup` (siehe `app/models.py`) zurückgibt. Eine neue Quelle wird in `app/refresh.py` eingehängt.
 - **Müllarten** haben Kürzel (`HM`, `BI`, `WS`, `PP`, …) in `app/models.py`. Die Farben stehen als CSS-Variablen `--c-<Kürzel>` in `app/static/app.css` (hell und dunkel).
-- **Daten:** `data/config.json` (Einstellungen), `data/pickups.json` (abgerufene Termine, je Quelle), `data/push.json` (für Push angemeldete Geräte) und `data/vapid.json` (Push-Schlüssel des Servers).
+- **Daten:** `data/config.json` (Einstellungen), `data/pickups.json` (abgerufene Termine, je Quelle), `data/marks.json` (Tonne rausgestellt/abgeholt, nur heute und später), `data/push.json` (für Push angemeldete Geräte) und `data/vapid.json` (Push-Schlüssel des Servers).
 - **PWA:** `app/static/sw.js` (unter `/sw.js` ausgeliefert) speichert Seite und `/api/state` für die Anzeige ohne Server und empfängt Push. Läuft nur über HTTPS mit gültigem Zertifikat (Wege dahin im README).
 
 ## Schnittstellen (Stand November 2026)

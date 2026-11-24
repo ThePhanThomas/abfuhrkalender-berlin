@@ -160,7 +160,9 @@ def _fmt(d: date) -> str:
 def reminder_for(day: date) -> dict | None:
     """Message for pickups on `day` (only the categories shown in the app), or None."""
     cfg = store.load_config()
-    wanted = set(cfg["categories"])
+    # Schon rausgestellte (oder abgeholte) Tonnen brauchen keine Erinnerung mehr.
+    marked = set(store.load_marks(day).get(day.isoformat(), {}))
+    wanted = set(cfg["categories"]) - marked
     cats: list[str] = []
     for p in store.all_pickups(store.load_data()):
         if p.date == day and p.category in wanted and p.category not in cats:

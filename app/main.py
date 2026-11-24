@@ -123,6 +123,19 @@ class PushEndpoint(BaseModel):
     endpoint: str
 
 
+class Mark(BaseModel):
+    date: date
+    category: str
+    status: Optional[Literal["out", "done"]] = None  # None = Markierung entfernen
+
+
+MARK_DAYS_AHEAD = 7  # weiter voraus ergibt "rausgestellt" keinen Sinn
+
+
+def _today() -> date:
+    return datetime.now(push.TZ).date()
+
+
 def _state() -> dict:
     cfg = store.load_config()
     data = store.load_data()
@@ -135,6 +148,7 @@ def _state() -> dict:
             name: {k: v for k, v in src.items() if k != "pickups"} for name, src in data.get("sources", {}).items()
         },
         "pickups": [p.to_dict() for p in store.all_pickups(data)],
+        "marks": store.load_marks(_today()),
     }
 
 
@@ -185,6 +199,18 @@ async def post_refresh():
         raise HTTPException(400, "Bitte zuerst eine Adresse einrichten.")
     await asyncio.to_thread(refresh.run)
     return _state()
+
+
+@app.put("/api/marks")
+def put_mark(mark: Mark):
+    today = _today()
+    if mark.category not in CATEGORIES:
+        raise HTTPException(422, "Unbekannte Müllart.")
+    if mark.date < today:
+        raise HTTPException(422, "Vergangene Abholungen lassen sich nicht mehr markieren.")
+    if (mark.date - today).days > MARK_DAYS_AHEAD:
+        raise HTTPException(422, "So weit im Voraus lässt sich nichts markieren.")
+    return {"marks": store.set_mark(mark.date, mark.category, mark.status, today)}
 
 
 @app.get("/api/calendar.ics")
