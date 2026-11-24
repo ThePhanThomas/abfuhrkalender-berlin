@@ -356,7 +356,7 @@ def run_alerts(now: datetime | None = None) -> int:
 
 # ---------- bins: second reminder and "put out" notice ----------
 NAG_WINDOW_MIN = 60  # after a restart, send a missed second reminder only within this window
-OUT_DELAY = timedelta(minutes=2)  # undo within this time = no notice (tapped by mistake)
+OUT_DELAY = timedelta(minutes=1)  # undo within this time = no notice (tapped by mistake)
 OUT_MAX_AGE = timedelta(minutes=30)  # older notices are dropped (e.g. server was down)
 QUIET_FROM, QUIET_TO = 23, 6  # no "put out" notices at night
 

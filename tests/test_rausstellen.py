@@ -108,8 +108,8 @@ def test_out_notice_to_other_devices_after_delay(api, sent):  # noqa: F811
     for q in data["out_pending"]:
         q["at"] = marked.isoformat()
     push._save(data)
-    assert push.run_out_notices(marked + timedelta(minutes=1)) == 0  # erst nach der Wartezeit
-    assert push.run_out_notices(marked + timedelta(minutes=2)) == 1
+    assert push.run_out_notices(marked + timedelta(seconds=50)) == 0  # erst nach der Wartezeit
+    assert push.run_out_notices(marked + timedelta(minutes=1)) == 1
     assert sent[0]["endpoint"] == OTHER["endpoint"]  # nicht an das markierende Gerät
     assert sent[0]["data"]["title"] == "Steht draußen: Hausmüll und Biogut"
     assert push.run_out_notices(marked + timedelta(minutes=3)) == 0  # nur einmal
