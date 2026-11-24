@@ -1,4 +1,5 @@
-"""Persistence: config.json (user settings) and pickups.json (fetched dates).
+"""Persistence: config.json (user settings), pickups.json (fetched dates) and
+marks.json (bins marked as put out / collected).
 
 Both live in DATA_DIR (default ./data, in Docker /data). Nothing address-
 specific is ever part of the code; it is entered in the UI and stored here.
@@ -11,6 +12,7 @@ import json
 import os
 import threading
 from copy import deepcopy
+from datetime import date
 from pathlib import Path
 
 from app.models import CATEGORIES, DEFAULT_CATEGORIES, Pickup
@@ -84,3 +86,40 @@ def all_pickups(data: dict) -> list[Pickup]:
         out.extend(Pickup.from_dict(p) for p in src.get("pickups", []))
     out.sort(key=lambda p: (p.date, p.category))
     return out
+
+
+# ---------- marks: bin put out / collected ----------
+# Shape: {"2026-11-25": {"HM": "out", "BI": "done"}}. Only today and later are
+# kept; past days are dropped on every read and write, so the file stays tiny.
+MARK_STATES = ("out", "done")
+
+
+def _prune_marks(marks: dict, today: date) -> dict:
+    t = today.isoformat()
+    return {
+        day: {c: s for c, s in cats.items() if s in MARK_STATES}
+        for day, cats in marks.items()
+        if isinstance(cats, dict) and day >= t and any(s in MARK_STATES for s in cats.values())
+    }
+
+
+def load_marks(today: date) -> dict:
+    with _lock:
+        marks = _read("marks.json", {})
+    return _prune_marks(marks if isinstance(marks, dict) else {}, today)
+
+
+def set_mark(day: date, category: str, status: str | None, today: date) -> dict:
+    """Set (or with status None remove) the mark for one bin; returns all current marks."""
+    with _lock:
+        raw = _read("marks.json", {})
+        marks = _prune_marks(raw if isinstance(raw, dict) else {}, today)
+        cats = marks.setdefault(day.isoformat(), {})
+        if status:
+            cats[category] = status
+        else:
+            cats.pop(category, None)
+        if not cats:
+            del marks[day.isoformat()]
+        _write("marks.json", marks)
+    return marks
