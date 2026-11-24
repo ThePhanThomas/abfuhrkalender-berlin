@@ -213,6 +213,17 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
 .count.word b { font-size: 26px; }
 [data-theme="dark"] .count b { color: color-mix(in srgb, var(--c) 75%, white); }
 .hero-main.soon { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+/* Abholungen heute und morgen: eine Zeile pro Tag */
+.hero-main.days { flex-direction: column; align-items: stretch; gap: 0; padding: 18px 24px; }
+.day-row { display: flex; gap: 14px; align-items: center; padding: 10px 0; position: relative; z-index: 1; }
+.day-row + .day-row { border-top: 1px solid var(--muted-bg); }
+.day-word { flex: none; width: 76px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--c); }
+[data-theme="dark"] .day-word { color: color-mix(in srgb, var(--c) 75%, white); }
+.day-tiles { display: flex; flex: none; }
+.day-tiles .tile { --s: 44px; }
+.day-tiles .tile + .tile { margin-left: -10px; box-shadow: 0 0 0 2px var(--surface); }
+.day-what { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.day-hint { font-size: 13px; font-weight: 600; color: var(--accent-strong); margin-top: 2px; }
 
 .hero-list { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 8px 8px 8px 0; display: grid; align-content: center; overflow: hidden; }
 .hl-row { position: relative; display: flex; gap: 12px; align-items: center; padding: 8px 10px 8px 16px; }
@@ -233,6 +244,11 @@ button.ghost:hover { background: var(--muted-bg); color: var(--text); }
   .hero-tiles .tile { --s: 52px; }
   .hero-what { font-size: 23px; }
   .count b { font-size: 34px; }
+  .hero-main.days { padding: 14px 16px; }
+  .day-row { gap: 10px; }
+  .day-word { width: auto; min-width: 64px; font-size: 17px; }
+  .day-tiles .tile { --s: 36px; }
+  .day-what { font-size: 16px; }
 }
 
 /* Legende als Chips */

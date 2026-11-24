@@ -183,15 +183,43 @@ function fillNext(pickups, keep = null) {
   const rest = items.filter((p) => p.date !== items[0].date);
   const n = daysUntil(first[0]);
   const count = n === 0 ? `<b>Heute</b>` : n === 1 ? `<b>Morgen</b>` : `<span class="pre">in</span><b>${n}</b><span>Tagen</span>`;
+  const providers = (ps) => esc([...new Set(ps.map((p) => p.provider))].join(", "));
+  // Abholungen heute UND morgen: beide Tage gehören in die große Karte, denn für morgen
+  // muss die Tonne schon heute Abend raus. Eine Zeile pro Tag, gleiche Tage zusammen.
+  const tomorrow = n === 0 ? rest.filter((p) => daysUntil(p) === 1) : [];
+  if (tomorrow.length) {
+    const dayRow = (word, ps, hint) => `<div class="day-row" style="--c: var(--c-${ps[0].category})">
+        <b class="day-word">${word}</b>
+        <div class="day-tiles">${ps.map((p) => tile(p.category)).join("")}</div>
+        <div class="hero-text">
+          <div class="day-what">${ps.map((p) => esc(catName(p.category))).join(" & ")}</div>
+          <div class="hero-date">${fmtLong(ps[0].date)} · ${providers(ps)}${ps.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
+          ${hint ? `<div class="day-hint">${hint}</div>` : ""}
+        </div>
+      </div>`;
+    const later = rest.filter((p) => daysUntil(p) > 1);
+    const hero2 = `<div class="hero-main soon days" style="--c: var(--c-${first[0].category})">
+        <div class="eyebrow">Heute und morgen</div>
+        ${dayRow("Heute", first)}
+        ${dayRow("Morgen", tomorrow, "Heute Abend rausstellen")}
+      </div>`;
+    showNext(hero2, later, keep, moved);
+    return;
+  }
   const hero = `<div class="hero-main${n <= 1 ? " soon" : ""}" style="--c: var(--c-${first[0].category})">
       <div class="hero-tiles">${first.map((p) => tile(p.category)).join("")}</div>
       <div class="hero-text">
         <div class="eyebrow">Nächste Abholung</div>
         <div class="hero-what">${first.map((p) => esc(catName(p.category))).join(" & ")}</div>
-        <div class="hero-date">${fmtLong(first[0].date)} · ${esc([...new Set(first.map((p) => p.provider))].join(", "))}${first.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
+        <div class="hero-date">${fmtLong(first[0].date)} · ${providers(first)}${first.some((p) => p.moved_from) ? ` · <span class="moved-note">verschoben</span>` : ""}</div>
       </div>
       <div class="count${n <= 1 ? " word" : ""}">${count}</div>
     </div>`;
+  showNext(hero, rest, keep, moved);
+}
+
+// Große Karte plus Liste der übrigen Müllarten einsetzen.
+function showNext(hero, rest, keep, moved) {
   const list = rest.length ? `<div class="hero-list">${rest.map((p) => `<div class="hl-row" style="--c: var(--c-${p.category})">${tile(p.category)}
       <div class="hl-text"><div class="hl-what">${esc(catName(p.category))}</div><div class="hl-date">${fmtLong(p.date)}${moved(p)}</div></div>
       <span class="rel">${relativeDay(p.date)}</span></div>`).join("")}</div>`
@@ -225,10 +253,15 @@ function renderMonths() {
   }
   const today = iso(new Date());
   const now = new Date();
-  // Day fill: one waste type = its tint, two = split diagonally, more = first two (dots in the tooltip tell the rest).
+  // Day fill: one waste type = its tint, two = split diagonally, three or more = equal slices.
   const fillOf = (ps) => {
-    const cols = ps.slice(0, 2).map((p) => `color-mix(in srgb, var(--c-${p.category}) var(--day-tint), transparent)`);
-    return cols.length === 2 ? `linear-gradient(135deg, ${cols[0]} 50%, ${cols[1]} 50%)` : cols[0] || "";
+    const cols = ps.map((p) => `color-mix(in srgb, var(--c-${p.category}) var(--day-tint), transparent)`);
+    if (cols.length === 2) return `linear-gradient(135deg, ${cols[0]} 50%, ${cols[1]} 50%)`;
+    if (cols.length > 2) {
+      const step = 360 / cols.length;
+      return `conic-gradient(from -45deg, ${cols.map((c, i) => `${c} ${i * step}deg ${(i + 1) * step}deg`).join(", ")})`;
+    }
+    return cols[0] || "";
   };
   let html = "";
   for (let m = 0; m < 12; m++) {
