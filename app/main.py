@@ -64,9 +64,12 @@ async def _push_loop() -> None:
             log.exception("Hinweise fehlgeschlagen")
         try:
             await asyncio.to_thread(push.run_nag)
+        except Exception:
+            log.exception("Nachhak-Erinnerung fehlgeschlagen")
+        try:
             await asyncio.to_thread(push.run_out_notices)
         except Exception:
-            log.exception("Rausstell-Mitteilungen fehlgeschlagen")
+            log.exception("Rausstell-Mitteilung fehlgeschlagen")
         await asyncio.sleep(60)
 
 
