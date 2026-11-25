@@ -136,3 +136,12 @@ def test_glas_and_sonstiges_not_offered(api):
 def test_old_config_drops_removed_categories(tmp_data):
     (tmp_data / "config.json").write_text('{"categories": ["HM", "GL", "SO"]}', encoding="utf-8")
     assert store.load_config()["categories"] == ["HM"]
+
+
+def test_head_requests_for_monitoring(api):
+    # Manche Überwachungsprogramme prüfen per HEAD, ob die App läuft.
+    for path in ("/", "/healthz"):
+        r = api.head(path)
+        assert r.status_code == 200
+        assert r.content == b""
+    assert api.get("/").text.startswith("<!")

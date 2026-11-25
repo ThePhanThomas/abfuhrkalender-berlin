@@ -4,7 +4,7 @@ Diese Datei ist für alle – Menschen wie Claude –, die hier in einer neuen S
 
 **Bitte aktuell halten:** Wer ein Feature abschließt oder etwas Neues herausfindet, passt diese Datei im selben Pull Request an.
 
-_Stand: 24.11.2026_
+_Stand: 25.11.2026_
 
 ---
 
@@ -46,7 +46,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | Push-Erinnerung am Vorabend (Uhrzeit einstellbar, Standard 18 Uhr; pro Gerät ein-/ausschaltbar, „Test senden“). Schlüssel in `data/vapid.json`, Geräte in `data/push.json` | `app/push.py`, `app/main.py` (`/api/push/*`, `_push_loop`), `app.js` (`renderPush`, `togglePush`) |
 | Push-Hinweise (08–21 Uhr): Vorwarnung ca. 7 Tage vor einem verschobenen Termin (`moved_from`), „Termin geändert“ bei Abweichungen zwischen zwei Abrufen (nächste 14 Tage, nur BSR bei gleicher Adresse und Berlin Recycling), Meldung ab dem 2. Fehlschlag einer Quelle und „klappt wieder“. Nach einem Fehlschlag neuer Abruf nach 6 h. Abend-Erinnerung nennt Verschiebung. Fehlerbanner zeigt „(seit TT.MM.)“. Gemerkt in `push.json` (`failure_alerted`, `moved_announced`, `changes_sent`), Änderungen in `pickups.json` (`changes`) | `app/push.py` (`run_alerts`, `_collect_alerts`), `app/refresh.py` (`detect_changes`, `fail_count`/`failed_since`), `app/main.py` (`_refresh_due`) |
 | Docker-Setup für jeden Rechner mit Docker (im Einsatz auf einer Synology DS723+), Benutzernummer per `PUID`/`PGID`; README erklärt erst den allgemeinen Weg, dann die Synology als Beispiel | `Dockerfile`, `docker-compose.yml`, README |
-| Tests (80, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
+| Tests (81, alle Webcalls gemockt, Push-Versand gesperrt) + GitHub Actions bei Push/PR | `tests/`, `.github/workflows/tests.yml` |
 
 ### Verlauf
 
@@ -79,6 +79,7 @@ Läuft seit 22.11.2026 auf der Synology, alle vier Müllarten werden dort abgeru
 | #31 | Vorbereitung fürs Öffentlichmachen: Repo, Historie und PRs auf persönliche Daten geprüft (nichts gefunden), MIT-Lizenz (`LICENSE`) und Hinweis „Kein offizielles Angebot“ im README; README: Code per `git clone https://…` statt Deploy-Key |
 | – | Repo auf GitHub öffentlich geschaltet (22.11.2026) |
 | – | HTTPS auf dem NAS über eigene Domain statt Tailscale; README beschreibt HTTPS jetzt allgemein (eigene Domain, Tailscale, vorhandener Reverse Proxy). Hinweise in der App sagen „per VPN“ statt „mit Tailscale“ |
+| – | GitHub Actions auf `checkout@v7`/`setup-python@v7` (Node.js 24); `HEAD /` und `HEAD /healthz` für Überwachungsprogramme |
 
 ## Offene Punkte
 
@@ -105,10 +106,8 @@ In etwa nach Wichtigkeit:
    - Nachhaken und „Steht draußen“ nur in Tests geprüft; die Schalter dafür im Browser nur mit nachgestellter Push-Anmeldung angesehen (im Testbrowser sind Mitteilungen blockiert). Noch nicht auf dem iPhone. Bei ausgeschaltetem Markieren steht in der Karte weiter „Heute Abend rausstellen“ – für Mieter evtl. unpassend.
    - Live-Verhalten von `keep_past` – sichtbar erst, wenn Papiertermine in der Vergangenheit liegen (ab 01.12.2026); in Tests abgedeckt.
 3. **Kleinigkeiten:**
-   - GitHub Actions warnt, dass `actions/checkout@v4` und `actions/setup-python@v5` noch auf Node.js 20 laufen – bei Gelegenheit auf neuere Versionen heben.
    - Wie viele Geräte eine Erinnerung erreicht hat, steht nirgends im Protokoll (`log.info` in `push.py` wird nicht ausgegeben), und Anmeldungen, die Apple als ungültig meldet, verschwinden still. Erschwert die Fehlersuche bei Push.
    - Auf dem NAS gibt es noch keine Umleitung von http auf https für die App (optional, Browser versuchen ohnehin zuerst https). Ginge mit einer kleinen nginx-Datei in `/usr/local/etc/nginx/sites-enabled/`, die ein DSM-Update aber entfernen kann.
-   - `HEAD /` liefert 405 (nur `GET` ist definiert). Stört nicht, manche Monitoring-Tools prüfen aber per HEAD.
    - pytest zeigt eine Deprecation-Warnung aus Starlette (nicht unser Code).
    - Favicon: für 16/32 px eine vereinfachte Fassung des Icons zeichnen – das volle Motiv wird dort zum Klecks. (Die PWA-Icons 180/192/512 px gibt es.)
 4. **Commit-Autoren:** Das Repo ist seit 22.11.2026 öffentlich. Ältere Commits nennen als Autor den vollen Namen und den Rechnernamen (`…@Mac.fritz.box`) – ob die Historie umgeschrieben wird, ist noch nicht entschieden (bräuchte ein erzwungenes Überschreiben auf GitHub und ein neues Holen auf dem NAS). Für neue Commits lässt sich die anonyme GitHub-Adresse einstellen (`git config user.email "<id>+<name>@users.noreply.github.com"`).
@@ -153,6 +152,7 @@ Ohne Namen und Domain, die stehen nur auf dem NAS bzw. beim Domain-Anbieter:
 - **BSR blockt Browser-Aufrufe** (`Origin`-Header → 403). Alles läuft über den Server.
 - **`.env`-Änderungen** wirken erst nach einem Neustart des Servers (`--reload` lädt nur Code neu).
 - **Browser-Cache:** Ohne `Cache-Control` hat ein Browser neue HTML-Seite mit alten CSS/JS kombiniert – sah völlig kaputt aus. Ist behoben (Middleware in `app/main.py`); bei Problemen nach einem Update trotzdem zuerst mit Cmd+Shift+R neu laden.
+- **Test unerklärlich rot, Code stimmt aber:** Python hatte eine veraltete Zwischenfassung (`__pycache__/push.cpython-312.pyc`) mit alter Wartezeit geladen. Abhilfe: `find app tests -name __pycache__ -prune -exec rm -rf {} +`, dann neu testen.
 - **Tests und echte Webcalls:** `refresh.run()` ohne `client=` erzeugt einen echten HTTP-Client. In Tests immer den Mock-Client aus `conftest.py` übergeben.
 - **Antippen auf dem Handy:** Ein Tipp löst erst `focusin`, dann `click` aus. Ob der Kasten schon offen war, wird deshalb bei `pointerdown` gemerkt (`initTooltip`).
 - **Drucken auf dem iPhone ergab 2 Seiten:** iOS ignoriert `@page { margin: 0 }`, druckt mit eigenem Rand (gemessen ca. 17 mm rundherum) samt Datum/URL. Die feste Größe 297 × 209 mm passte nicht mehr, die Fußzeile rutschte auf Seite 2. Deshalb hat der `body` beim Drucken keine feste Größe mehr, sondern volle Breite und ein Seitenverhältnis (`aspect-ratio: 297 / 190`). Mit 297 / 198 passte zwar alles auf Seite 1, Safari hängte aber trotzdem eine leere zweite Seite an – es braucht etwas Luft. Hochformat war nie betroffen. Nachstellen: in `app.css` vorübergehend `margin: 12.7mm` bei `@page` setzen und mit Chrome drucken.

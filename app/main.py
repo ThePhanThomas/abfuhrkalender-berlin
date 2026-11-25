@@ -168,7 +168,7 @@ def _state() -> dict:
     }
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def index():
     return FileResponse(STATIC / "index.html")
 
@@ -286,6 +286,6 @@ def push_test(body: PushEndpoint):
     return {"ok": True}
 
 
-@app.get("/healthz")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
 def healthz():
     return {"ok": True}
