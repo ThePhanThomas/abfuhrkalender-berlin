@@ -98,7 +98,9 @@ def subscriptions() -> list[dict]:
         return _load()["subscriptions"]
 
 
-DEFAULT_PREFS = {"nag": False, "out_notice": False}
+# put_out: this device puts the bins out itself (app setting "Tonnen markieren").
+# Off (e.g. tenants) = the evening reminder only says that there is a pickup.
+DEFAULT_PREFS = {"nag": False, "out_notice": False, "put_out": True}
 
 
 def _prefs(sub: dict) -> dict:
@@ -180,12 +182,14 @@ def _fmt(d: date) -> str:
     return f"{WEEKDAYS[d.weekday()]} {d.day:02d}.{d.month:02d}."
 
 
-def reminder_for(day: date) -> dict | None:
-    """Message for pickups on `day` (only the categories shown in the app), or None."""
+def reminder_for(day: date, put_out: bool = True) -> dict | None:
+    """Message for pickups on `day` (only the categories shown in the app), or None.
+    `put_out` False: for devices that do not put bins out, plain information."""
     cfg = store.load_config()
-    # Schon rausgestellte (oder abgeholte) Tonnen brauchen keine Erinnerung mehr.
-    marked = set(store.load_marks(day).get(day.isoformat(), {}))
-    wanted = set(cfg["categories"]) - marked
+    wanted = set(cfg["categories"])
+    if put_out:
+        # Schon rausgestellte (oder abgeholte) Tonnen brauchen keine Erinnerung mehr.
+        wanted -= set(store.load_marks(day).get(day.isoformat(), {}))
     cats: list[str] = []
     for p in store.all_pickups(store.load_data()):
         if p.date == day and p.category in wanted and p.category not in cats:
@@ -193,7 +197,10 @@ def reminder_for(day: date) -> dict | None:
     if not cats:
         return None
     what = _names(cats)
-    body = "Tonne heute Abend rausstellen." if len(cats) == 1 else "Tonnen heute Abend rausstellen."
+    if not put_out:
+        body = "Morgen ist Abholung."
+    else:
+        body = "Tonne heute Abend rausstellen." if len(cats) == 1 else "Tonnen heute Abend rausstellen."
     moved = next(
         (
             p.moved_from
@@ -237,11 +244,12 @@ def run_due(now: datetime | None = None) -> int:
         data["last_sent"] = today.isoformat()  # mark first: never send twice, even if a send fails
         _save(data)
         subs = list(data["subscriptions"])
-    message = reminder_for(today + timedelta(days=1))
-    if not message:
-        return 0
+    messages = {flag: reminder_for(today + timedelta(days=1), put_out=flag) for flag in (True, False)}
     sent = 0
     for sub in subs:
+        message = messages[_prefs(sub)["put_out"]]
+        if not message:
+            continue
         try:
             send(sub, message)
             sent += 1
@@ -392,7 +400,7 @@ def run_nag(now: datetime | None = None) -> int:
     today = now.date()
     with _lock:
         data = _load()
-        subs = [s for s in data["subscriptions"] if _prefs(s)["nag"]]
+        subs = [s for s in data["subscriptions"] if _prefs(s)["nag"] and _prefs(s)["put_out"]]
         if data.get("nag_sent") == today.isoformat() or not subs:
             return 0
         data["nag_sent"] = today.isoformat()  # mark first: never send twice

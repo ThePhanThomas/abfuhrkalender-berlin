@@ -136,6 +136,7 @@ class PushPrefs(BaseModel):
     endpoint: str
     nag: Optional[bool] = None  # None = unverändert lassen
     out_notice: Optional[bool] = None
+    put_out: Optional[bool] = None
 
 
 class Mark(BaseModel):
@@ -267,7 +268,7 @@ def push_unsubscribe(body: PushEndpoint):
 @app.post("/api/push/prefs")
 def push_prefs(body: PushPrefs):
     """Read (no fields) or change this device's push options."""
-    changes = {k: v for k, v in (("nag", body.nag), ("out_notice", body.out_notice)) if v is not None}
+    changes = {k: v for k in push.DEFAULT_PREFS if (v := getattr(body, k)) is not None}
     prefs = push.set_prefs(body.endpoint, changes)
     if prefs is None:
         raise HTTPException(404, "Dieses Gerät ist nicht für Erinnerungen angemeldet.")

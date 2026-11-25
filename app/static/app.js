@@ -202,7 +202,7 @@ function fillNext(pickups, keep = null) {
     const hero2 = `<div class="hero-main soon days">
         <div class="eyebrow">Heute und morgen</div>
         ${dayRow("Heute", first)}
-        ${dayRow("Morgen", tomorrow, "Heute Abend rausstellen")}
+        ${dayRow("Morgen", tomorrow, marksOn ? "Heute Abend rausstellen" : "")}
       </div>`;
     showNext(hero2, later, keep, moved);
     return;
@@ -891,11 +891,13 @@ async function renderPush() {
 async function renderMarksPush(sub) {
   $("marks-push-error").textContent = "";
   let prefs = null;
-  if (marksOn && sub) {
+  if (sub) {
+    // Dem Server mitteilen, ob dieses Gerät selbst rausstellt (Text der Abend-Erinnerung).
     try {
-      prefs = (await api("/api/push/prefs", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) })).prefs;
+      const p = (await api("/api/push/prefs", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint, put_out: marksOn }) })).prefs;
+      if (marksOn) prefs = p;
     } catch (e) {
-      $("marks-push-error").textContent = e.message;
+      if (marksOn) $("marks-push-error").textContent = e.message;
     }
   }
   $("marks-push-note").hidden = !marksOn || !!sub;
@@ -1118,6 +1120,9 @@ async function init() {
   render();
   if (printYear) { setTimeout(() => window.print(), 300); return; }
   if (!state.config.address && offlineSince === null) openSettings();
+  // Geräte, auf denen Markieren schon vorher aus war: dem Server einmal mitteilen,
+  // dass sie nicht selbst rausstellen (sonst erst beim nächsten Öffnen der Einstellungen).
+  if (!marksOn && offlineSince === null) setMarksPrefs({ put_out: false }).catch(() => {});
 }
 
 init();

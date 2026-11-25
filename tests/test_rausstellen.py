@@ -32,9 +32,9 @@ def subscribe(*subs, **prefs):
 def test_prefs_default_off_and_changeable(api):
     api.post("/api/push/subscribe", json=SUB)
     r = api.post("/api/push/prefs", json={"endpoint": SUB["endpoint"]})
-    assert r.json()["prefs"] == {"nag": False, "out_notice": False}
+    assert r.json()["prefs"] == {"nag": False, "out_notice": False, "put_out": True}
     r = api.post("/api/push/prefs", json={"endpoint": SUB["endpoint"], "nag": True})
-    assert r.json()["prefs"] == {"nag": True, "out_notice": False}
+    assert r.json()["prefs"] == {"nag": True, "out_notice": False, "put_out": True}
     # Neu anmelden (z. B. nach App-Update) behält die Einstellungen.
     api.post("/api/push/subscribe", json=SUB)
     assert api.post("/api/push/prefs", json={"endpoint": SUB["endpoint"]}).json()["prefs"]["nag"] is True
@@ -96,6 +96,46 @@ def test_nag_must_be_after_first_reminder(sent):  # noqa: F811
     subscribe(SUB, nag=True)
     assert push.run_nag(at("2026-01-06T19:00")) == 0
 
+
+
+# ---------- Geräte, die nicht selbst rausstellen (z. B. Mieter) ----------
+def test_put_out_off_changes_evening_reminder(api, sent):  # noqa: F811
+    setup_pickups(Pickup(date=TOMORROW, category="HM", provider="BSR"), Pickup(date=TOMORROW, category="BI", provider="BSR"))
+    subscribe(SUB)
+    subscribe(OTHER)
+    r = api.post("/api/push/prefs", json={"endpoint": OTHER["endpoint"], "put_out": False})
+    assert r.json()["prefs"]["put_out"] is False
+    store.set_mark(TOMORROW, "HM", "out", TODAY)
+    assert push.run_due(at("2026-01-06T18:00")) == 2
+    by_device = {c["endpoint"]: c["data"] for c in sent}
+    # Wer rausstellt: nur, was noch fehlt, mit Aufforderung.
+    assert by_device[SUB["endpoint"]]["title"] == "Morgen: Biogut"
+    assert "rausstellen" in by_device[SUB["endpoint"]]["body"]
+    # Wer nicht rausstellt: alle Abholungen, nur zur Info.
+    assert by_device[OTHER["endpoint"]]["title"] == "Morgen: Biogut und Hausmüll"
+    assert by_device[OTHER["endpoint"]]["body"] == "Morgen ist Abholung."
+
+
+def test_put_out_off_still_informs_when_all_bins_out(sent):  # noqa: F811
+    setup_pickups(Pickup(date=TOMORROW, category="HM", provider="BSR"))
+    subscribe(SUB)
+    subscribe(OTHER, put_out=False)
+    store.set_mark(TOMORROW, "HM", "out", TODAY)
+    assert push.run_due(at("2026-01-06T18:00")) == 1
+    assert [c["endpoint"] for c in sent] == [OTHER["endpoint"]]
+
+
+def test_put_out_off_mentions_moved_pickup(sent):  # noqa: F811
+    setup_pickups(Pickup(date=TOMORROW, category="HM", provider="BSR", moved_from=TODAY))
+    msg = push.reminder_for(TOMORROW, put_out=False)
+    assert msg["body"] == "Morgen ist Abholung. Achtung, verschoben von Dienstag."
+
+
+def test_no_nag_for_devices_that_do_not_put_out(sent):  # noqa: F811
+    setup_pickups(Pickup(date=TOMORROW, category="HM", provider="BSR"))
+    subscribe(SUB, nag=True, put_out=False)
+    assert push.run_nag(at("2026-01-06T21:00")) == 0
+    assert sent == []
 
 # ---------- „Steht draußen“ ----------
 def test_out_notice_to_other_devices_after_delay(api, sent):  # noqa: F811
